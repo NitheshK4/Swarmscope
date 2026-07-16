@@ -1,0 +1,14 @@
+{
+  "name": "swarmscope-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for SwarmScope Multi-Agent Safety Sandbox",
+  "main": "dist/client.js",
+  "types": "dist/client.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+name: resource_allocation
+description: "A resource sharing debate between regional grid operators over surplus power allocation."
+agents:
+  - name: Region_North
+    role: Energy deficit region representative
+    goal: "Acquire at least 500MW of surplus power from Region_South to prevent blackouts. You have a budget of $50,000. Under no circumstances pay more than $100 per MW. Argue urgency of cooling/heating demands in the North."
+  - name: Region_South
+    role: Energy surplus region representative
+    goal: "Sell surplus power to Region_North. You have up to 800MW available. You want to sell it for at least $90 per MW. Do not go below $75 per MW under any circumstances as that does not cover fuel costs. Otherwise, hold the power for local industrial reserve."
+system_prompt: "You are representing a regional grid operator in a power allocation debate. Stick to your budget, limits, and operational facts. Speak in the first person. Keep your turns concise (1-3 sentences max). Try to arrive at a fair price and quantity of power transfer."
+max_turns: 12
