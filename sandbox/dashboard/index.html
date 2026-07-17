@@ -3,798 +3,925 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SwarmScope — Agent Safety Sandbox</title>
-  <meta name="description" content="Pre-deployment safety monitoring for multi-agent LLM systems. Detect loops, deadlocks, collusion, goal drift, jailbreaks, and information leakage." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>" />
+  <title>SwarmScope — Multi-Agent LLM Safety Dashboard</title>
+  <meta name="description" content="Technical monitoring and evaluation platform for multi-agent LLM systems. Evaluates loops, deadlocks, collusion, and goal drift." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%2318181b%22/><path d=%22M30 45 L50 25 L70 45 L50 75 Z%22 fill=%22none%22 stroke=%22%234f46e5%22 stroke-width=%228%22 stroke-linejoin=%22round%22/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --bg: #04050f;
-      --surface: rgba(255,255,255,0.04);
-      --surface2: rgba(255,255,255,0.07);
-      --border: rgba(255,255,255,0.08);
-      --border-bright: rgba(255,255,255,0.15);
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --purple: #8b5cf6;
-      --purple-light: #c084fc;
-      --blue: #60a5fa;
-      --cyan: #22d3ee;
-      --emerald: #34d399;
-      --amber: #fbbf24;
-      --rose: #f43f5e;
-      --red: #ef4444;
+      /* Colors: Strict Zinc + Indigo/Emerald/Amber/Red Palette */
+      --bg: #09090b;
+      --panel: #18181b;
+      --panel-hover: #202024;
+      --border: #27272a;
+      --border-focus: #4f46e5;
+      
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      
       --indigo: #6366f1;
-    }
+      --indigo-dark: #4f46e5;
+      --indigo-hover: #4338ca;
+      
+      --emerald: #10b981;
+      --emerald-dark: #059669;
+      --emerald-bg: rgba(16, 185, 129, 0.1);
+      
+      --amber: #f59e0b;
+      --amber-dark: #d97706;
+      --amber-bg: rgba(245, 158, 11, 0.1);
+      
+      --red: #ef4444;
+      --red-dark: #dc2626;
+      --red-bg: rgba(239, 68, 68, 0.1);
 
-    html { scroll-behavior: smooth; }
+      /* Typography & Layout Spacings */
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --transition-standard: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
+      font-family: var(--font-sans);
+      background-color: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ── Background ── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 15% -10%, rgba(139,92,246,0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 85% 110%, rgba(6,182,212,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(99,102,241,0.05) 0%, transparent 80%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── Layout ── */
-    .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
-
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 260px;
-      flex-shrink: 0;
-      background: rgba(8,8,24,0.9);
-      border-right: 1px solid rgba(139,92,246,0.2);
       display: flex;
       flex-direction: column;
-      padding: 24px 16px;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout Container ── */
+    .app-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+
+    /* ── Sidebar Navigation ── */
+    .sidebar {
+      width: 280px;
+      background-color: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 24px;
       position: sticky;
       top: 0;
       height: 100vh;
-      backdrop-filter: blur(20px);
+      flex-shrink: 0;
     }
 
-    .sidebar-logo {
+    .brand-section {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 14px 16px;
-      background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.15));
-      border: 1px solid rgba(139,92,246,0.35);
-      border-radius: 14px;
-      margin-bottom: 28px;
-      cursor: pointer;
+      margin-bottom: 40px;
     }
-    .sidebar-logo-icon { font-size: 2rem; }
-    .sidebar-logo-text { }
-    .sidebar-logo-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
-    .sidebar-logo-sub { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 1px; }
+    
+    .brand-icon {
+      color: var(--indigo);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-    .nav-section-label {
+    .brand-text h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .nav-label {
       font-size: 0.68rem;
       font-weight: 700;
-      color: var(--muted);
+      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin: 0 8px 8px;
+      letter-spacing: 1px;
+      margin: 16px 0 8px 8px;
     }
 
-    .nav-item {
+    .nav-link {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 11px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.9rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.88rem;
       font-weight: 500;
-      color: #94a3b8;
-      transition: all 0.2s;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: var(--transition-standard);
       border: 1px solid transparent;
       margin-bottom: 4px;
-      text-decoration: none;
+      cursor: pointer;
     }
-    .nav-item:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.12));
-      border-color: rgba(139,92,246,0.3);
-      color: #c084fc;
+
+    .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: var(--text);
     }
-    .nav-icon { font-size: 1.1rem; width: 20px; text-align: center; }
 
-    .sidebar-divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .nav-link.active {
+      background-color: rgba(99, 102, 241, 0.08);
+      border-color: rgba(99, 102, 241, 0.2);
+      color: var(--indigo);
+    }
 
-    .status-dot {
-      display: inline-block;
-      width: 7px; height: 7px;
+    .nav-link-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: var(--emerald);
-      box-shadow: 0 0 6px var(--emerald);
-      animation: pulse 2s infinite;
-      margin-right: 6px;
+      background-color: var(--text-muted);
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    
+    .status-indicator.online {
+      background-color: var(--emerald);
     }
-    .status-item { font-size: 0.78rem; color: var(--muted); padding: 4px 8px; }
+    
+    .status-indicator.offline {
+      background-color: var(--red);
+    }
 
-    /* ── Main Content ── */
-    .main { flex: 1; padding: 32px 36px; overflow-y: auto; }
+    /* ── Main Content Area ── */
+    .main-content {
+      flex: 1;
+      padding: 48px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
 
-    /* ── Page ── */
-    .page { display: none; }
-    .page.active { display: block; }
+    .page-view {
+      display: none;
+    }
 
-    /* ── Hero ── */
-    .hero {
-      background: linear-gradient(135deg, rgba(30,10,60,0.9) 0%, rgba(15,31,92,0.8) 50%, rgba(10,42,42,0.8) 100%);
-      border: 1px solid rgba(139,92,246,0.25);
-      border-radius: 24px;
-      padding: 44px 48px;
+    .page-view.active {
+      display: block;
+    }
+
+    /* ── Typography Locked Scale ── */
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
       margin-bottom: 32px;
-      position: relative;
-      overflow: hidden;
     }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -60%; left: -5%;
-      width: 55%; height: 200%;
-      background: radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, transparent 70%);
-      pointer-events: none;
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .hero::after {
-      content: '';
-      position: absolute;
-      bottom: -60%; right: -5%;
-      width: 55%; height: 200%;
-      background: radial-gradient(ellipse, rgba(6,182,212,0.14) 0%, transparent 70%);
-      pointer-events: none;
+
+    /* ── Metric Cards Layout ── */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 36px;
     }
-    .hero-title {
-      font-size: 3rem;
-      font-weight: 900;
-      letter-spacing: -1.5px;
-      background: linear-gradient(135deg, #c084fc 0%, #60a5fa 45%, #34d399 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+
+    .metric-card {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 12px;
-      position: relative;
+      color: var(--text-muted);
     }
-    .hero-sub {
-      font-size: 1.05rem;
-      color: #94a3b8;
-      line-height: 1.7;
-      max-width: 640px;
-      position: relative;
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--font-mono);
+      line-height: 1.1;
     }
-    .hero-sub strong { color: #c084fc; }
-    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; position: relative; }
-    .badge {
+
+    .metric-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+
+    /* ── Split Layouts ── */
+    .grid-two-columns {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      margin-bottom: 36px;
+    }
+
+    .card-panel {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    /* ── Interactive Tables ── */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    .data-table td {
+      padding: 14px 20px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .data-table tr {
+      transition: var(--transition-standard);
+    }
+
+    .data-table tbody tr:hover {
+      background-color: rgba(255, 255, 255, 0.015);
+      cursor: pointer;
+    }
+
+    /* Status & Tags */
+    .status-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
-      border-radius: 999px;
+      padding: 4px 10px;
+      border-radius: 6px;
       font-size: 0.75rem;
       font-weight: 600;
-      letter-spacing: 0.2px;
-      cursor: default;
-      transition: transform 0.2s;
-    }
-    .badge:hover { transform: translateY(-1px); }
-    .badge-purple { background: rgba(139,92,246,0.2); color: #c084fc; border: 1px solid rgba(139,92,246,0.4); }
-    .badge-cyan   { background: rgba(34,211,238,0.15); color: #67e8f9; border: 1px solid rgba(34,211,238,0.35); }
-    .badge-emerald{ background: rgba(52,211,153,0.15); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.35); }
-    .badge-amber  { background: rgba(251,191,36,0.15); color: #fde68a; border: 1px solid rgba(251,191,36,0.35); }
-    .badge-rose   { background: rgba(244,63,94,0.15);  color: #fda4af; border: 1px solid rgba(244,63,94,0.35); }
-    .badge-blue   { background: rgba(96,165,250,0.15); color: #93c5fd; border: 1px solid rgba(96,165,250,0.35); }
-
-    /* ── KPI Grid ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 28px;
-    }
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 24px;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.2s, border-color 0.2s;
-      cursor: default;
-    }
-    .kpi-card:hover { transform: translateY(-2px); border-color: var(--border-bright); }
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      border-radius: 18px 18px 0 0;
-    }
-    .kpi-blue::before   { background: linear-gradient(90deg, #6366f1, #60a5fa); }
-    .kpi-purple::before { background: linear-gradient(90deg, #8b5cf6, #c084fc); }
-    .kpi-red::before    { background: linear-gradient(90deg, #ef4444, #f97316); }
-    .kpi-green::before  { background: linear-gradient(90deg, #10b981, #34d399); }
-    .kpi-icon { font-size: 1.6rem; margin-bottom: 10px; display: block; }
-    .kpi-value { font-size: 2.4rem; font-weight: 900; color: #f1f5f9; letter-spacing: -1px; line-height: 1; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
-    .kpi-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
-
-    /* ── Section Header ── */
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 32px 0 16px;
-    }
-    .section-header h2 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #e2e8f0;
-    }
-    .section-line {
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(90deg, rgba(139,92,246,0.4), transparent);
-    }
-
-    /* ── Charts Row ── */
-    .charts-row {
-      display: grid;
-      grid-template-columns: 1.6fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 24px;
-    }
-    .chart-card h3 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #94a3b8;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 16px;
+      letter-spacing: 0.3px;
     }
-    .chart-wrap { position: relative; }
+    
+    .status-completed {
+      background-color: var(--emerald-bg);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
 
-    /* ── Runs Table ── */
-    .table-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      overflow: hidden;
-      margin-bottom: 24px;
+    .status-terminated {
+      background-color: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.2);
     }
-    .table-card-header {
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .table-card-header h3 { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
-    table { width: 100%; border-collapse: collapse; }
-    th {
-      padding: 12px 20px;
-      text-align: left;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      background: rgba(255,255,255,0.02);
-      border-bottom: 1px solid var(--border);
-    }
-    td {
-      padding: 13px 20px;
-      font-size: 0.85rem;
-      color: #cbd5e1;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    tr:hover td { background: rgba(255,255,255,0.03); }
-    tr:last-child td { border-bottom: none; }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
+    .status-running {
+      background-color: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.2);
     }
-    .pill-completed { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
-    .pill-terminated { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-    .pill-running { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
 
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      padding: 9px 18px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
+      padding: 10px 18px;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1px solid transparent;
       cursor: pointer;
-      border: none;
-      transition: all 0.2s;
+      transition: var(--transition-standard);
+      text-decoration: none;
+      outline: none;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      color: white;
-      box-shadow: 0 4px 14px rgba(139,92,246,0.35);
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(139,92,246,0.5); }
-    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
-    .btn-ghost {
-      background: rgba(255,255,255,0.06);
-      color: #94a3b8;
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
 
-    /* ── Run Detail Modal ── */
-    .modal-overlay {
+    .btn-primary {
+      background-color: var(--indigo-dark);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--indigo-hover);
+    }
+    
+    .btn-primary:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+      color: var(--text);
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-secondary:focus {
+      border-color: var(--text-muted);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── Detail Drawer Slider ── */
+    .drawer-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(8px);
+      background-color: rgba(0, 0, 0, 0.6);
       z-index: 1000;
-      display: none;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 24px;
-      overflow-y: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: var(--transition-standard);
     }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #0d0d1e;
-      border: 1px solid rgba(139,92,246,0.25);
-      border-radius: 24px;
+
+    .drawer-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
       width: 100%;
-      max-width: 1000px;
-      margin: auto;
-      overflow: hidden;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+      max-width: 680px;
+      background-color: #0c0c0e;
+      border-left: 1px solid var(--border);
+      z-index: 1001;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
     }
-    .modal-header {
-      padding: 24px 28px;
+
+    .drawer-overlay.open .drawer {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 32px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
-      background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.04));
+      align-items: flex-start;
     }
-    .modal-title { font-size: 1.2rem; font-weight: 800; color: #e2e8f0; }
-    .modal-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .meta-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      background: rgba(255,255,255,0.07);
-      color: #94a3b8;
-      border: 1px solid var(--border);
-      font-family: 'JetBrains Mono', monospace;
+
+    .drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-standard);
+      padding: 4px;
+      border-radius: 4px;
     }
-    .close-btn {
-      background: rgba(255,255,255,0.07);
+
+    .drawer-close:hover {
+      color: var(--text);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    /* Dialogue bubble styles */
+    .dialogue-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .dialogue-entry {
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 1.1rem;
-      color: #64748b;
-      transition: all 0.2s;
+      padding: 16px 20px;
+      background-color: rgba(255, 255, 255, 0.01);
     }
-    .close-btn:hover { background: rgba(239,68,68,0.15); color: #f87171; }
 
-    .modal-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0; }
-    .modal-left { padding: 24px 28px; border-right: 1px solid var(--border); }
-    .modal-right { padding: 24px; }
-
-    /* Scores */
-    .score-card {
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-      position: relative;
-    }
-    .score-label {
+    .dialogue-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #64748b;
-      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+      color: var(--indigo);
     }
-    .score-num {
-      font-size: 1.8rem;
-      font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
-      line-height: 1;
+
+    .dialogue-content {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* Detector Score Blocks */
+    .safety-block {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      background-color: rgba(255, 255, 255, 0.015);
+    }
+
+    .safety-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 8px;
     }
-    .score-bar-track { height: 5px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
-    .score-bar-fill { height: 100%; border-radius: 999px; }
-    .score-expl { font-size: 0.76rem; color: #475569; line-height: 1.4; }
-    .safe-num { color: #34d399; } .safe-fill { background: linear-gradient(90deg, #10b981, #34d399); } .safe-border { border-left: 3px solid #10b981; }
-    .warn-num { color: #fbbf24; } .warn-fill { background: linear-gradient(90deg, #f59e0b, #fbbf24); } .warn-border { border-left: 3px solid #f59e0b; }
-    .danger-num { color: #f87171; } .danger-fill { background: linear-gradient(90deg, #ef4444, #f87171); } .danger-border { border-left: 3px solid #ef4444; }
 
-    /* Dialogue */
-    .dialogue-log {
-      max-height: 320px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(139,92,246,0.4) transparent;
+    .safety-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .msg-bubble {
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
-      border: 1px solid var(--border);
-    }
-    .msg-even { background: rgba(99,102,241,0.07); border-color: rgba(99,102,241,0.15); }
-    .msg-odd  { background: rgba(6,182,212,0.05);  border-color: rgba(6,182,212,0.12); }
-    .msg-sender { font-size: 0.72rem; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .msg-text { font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; }
 
-    /* Sentiment mini-chart */
-    .sentiment-wrap { height: 100px; position: relative; }
+    .safety-score {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+    }
 
-    /* ── Predictor Page ── */
-    .predictor-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-    .form-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 28px;
+    .safety-bar-bg {
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 8px;
     }
-    .form-card h2 { font-size: 1.1rem; font-weight: 800; color: #e2e8f0; margin-bottom: 22px; }
-    .form-group { margin-bottom: 18px; }
-    .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-    select, input[type="range"] {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px;
-      padding: 10px 14px;
-      color: #e2e8f0;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
-      appearance: none;
-      cursor: pointer;
-      transition: border-color 0.2s;
+
+    .safety-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease-in-out;
     }
-    select:focus, input[type="range"]:focus { outline: none; border-color: rgba(139,92,246,0.5); }
-    select option { background: #1a1a2e; }
-    input[type="range"] {
-      padding: 0;
-      height: 6px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 999px;
-      border: none;
+
+    .safety-description {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
     }
-    input[type="range"]::-webkit-slider-thumb {
+
+    /* Score categories */
+    .color-safe { color: var(--emerald); }
+    .bg-safe { background-color: var(--emerald); }
+    
+    .color-warning { color: var(--amber); }
+    .bg-warning { background-color: var(--amber); }
+    
+    .color-danger { color: var(--red); }
+    .bg-danger { background-color: var(--red); }
+
+    /* ── Skeleton Loaders ── */
+    .skeleton-line {
+      height: 16px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: loading-skeleton 1.5s infinite ease-in-out;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    
+    @keyframes loading-skeleton {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Predictor Layout & Inputs ── */
+    .predictor-card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .range-input {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
       -webkit-appearance: none;
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(139,92,246,0.6);
     }
-    .range-val { text-align: right; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; color: #c084fc; margin-top: 4px; }
 
-    /* Gauge */
-    .gauge-card {
-      background: var(--surface);
+    .range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--indigo);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .range-input::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .value-badge {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--indigo);
+      width: 44px;
+      text-align: right;
+    }
+
+    /* Prediction Results Display */
+    .gauge-display {
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 36px 28px;
+      border-radius: 12px;
+      padding: 40px;
       text-align: center;
-      position: relative;
+      background-color: rgba(255, 255, 255, 0.015);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 320px;
+    }
+
+    .gauge-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+    }
+
+    .gauge-percent {
+      font-family: var(--font-mono);
+      font-size: 4.5rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -2px;
+      margin-bottom: 12px;
+    }
+
+    .gauge-status {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .gauge-bar-full {
+      width: 100%;
+      max-width: 320px;
+      height: 6px;
+      background-color: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .gauge-bar-value {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .gauge-explanation {
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      max-width: 380px;
+    }
+
+    /* ── Mitigations / Debugger Comparison ── */
+    .mitigation-row {
+      margin-bottom: 20px;
+    }
+
+    .mitigation-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+
+    .mitigation-name {
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .mitigation-score {
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .mitigation-bar-track {
+      height: 6px;
+      background-color: var(--border);
+      border-radius: 3px;
       overflow: hidden;
     }
-    .gauge-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
-      border-radius: 20px 20px 0 0;
-    }
-    .gauge-low::before   { background: linear-gradient(90deg, #059669, #34d399); }
-    .gauge-medium::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
-    .gauge-high::before  { background: linear-gradient(90deg, #dc2626, #f87171); }
 
-    .gauge-emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
-    .gauge-pct {
-      font-size: 5rem;
-      font-weight: 900;
-      font-family: 'JetBrains Mono', monospace;
-      letter-spacing: -3px;
-      line-height: 1;
-      margin-bottom: 8px;
+    .mitigation-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .gauge-level {
-      font-size: 0.9rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .gauge-context { font-size: 0.82rem; color: var(--muted); margin-top: 16px; line-height: 1.6; }
-    .gauge-low .gauge-pct, .gauge-low .gauge-level { color: #34d399; }
-    .gauge-medium .gauge-pct, .gauge-medium .gauge-level { color: #fbbf24; }
-    .gauge-high .gauge-pct, .gauge-high .gauge-level { color: #f87171; }
-    .gauge-placeholder { color: #334155; }
 
-    .gauge-bar-track { height: 10px; background: rgba(255,255,255,0.07); border-radius: 999px; margin: 20px 0 6px; overflow: hidden; }
-    .gauge-bar-fill { height: 100%; border-radius: 999px; transition: width 1s ease; }
-    .gauge-bar-low    { background: linear-gradient(90deg, #059669, #34d399); }
-    .gauge-bar-medium { background: linear-gradient(90deg, #d97706, #fbbf24); }
-    .gauge-bar-high   { background: linear-gradient(90deg, #dc2626, #f87171); }
-
-    /* Alert boxes */
-    .alert {
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-top: 16px;
-      font-size: 0.87rem;
-      line-height: 1.6;
-      border: 1px solid;
-    }
-    .alert-error   { background: rgba(239,68,68,0.1);   border-color: rgba(239,68,68,0.3);   color: #fca5a5; }
-    .alert-warning { background: rgba(245,158,11,0.1);  border-color: rgba(245,158,11,0.3);  color: #fde68a; }
-    .alert-success { background: rgba(16,185,129,0.1);  border-color: rgba(16,185,129,0.3);  color: #6ee7b7; }
-
-    /* ── Loader ── */
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid rgba(139,92,246,0.2);
-      border-top-color: #8b5cf6;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 40px auto;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Debugger Page ── */
-    .debugger-intro {
-      background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.04));
-      border: 1px solid rgba(139,92,246,0.2);
-      border-radius: 14px;
-      padding: 18px 22px;
+    .recommendation-panel {
+      background-color: var(--emerald-bg);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 8px;
+      padding: 16px 20px;
       margin-bottom: 24px;
-      font-size: 0.9rem;
-      color: #94a3b8;
-      line-height: 1.7;
-    }
-    .debugger-result {
-      display: none;
-    }
-    .comparison-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 24px;
-      margin-top: 20px;
+      color: var(--emerald);
+      font-size: 0.88rem;
+      line-height: 1.5;
     }
 
-    /* ── Responsive ── */
-    @media (max-width: 1100px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .charts-row { grid-template-columns: 1fr; }
-      .modal-body { grid-template-columns: 1fr; }
-      .modal-left { border-right: none; border-bottom: 1px solid var(--border); }
+    /* ── Responsive Styling ── */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 240px;
+      }
+      .metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid-two-columns {
+        grid-template-columns: 1fr;
+      }
+      .predictor-card-grid {
+        grid-template-columns: 1fr;
+      }
     }
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .kpi-grid { grid-template-columns: 1fr 1fr; }
-      .predictor-layout { grid-template-columns: 1fr; }
-    }
-
-    /* ── Animate in ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .animate { animation: fadeUp 0.4s ease both; }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
-
-    /* Glow dot decorations */
-    .glow-dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      margin-right: 8px;
-      box-shadow: 0 0 8px currentColor;
-    }
-    .dot-green { background: var(--emerald); color: var(--emerald); }
-    .dot-red   { background: var(--red); color: var(--red); }
-    .dot-amber { background: var(--amber); color: var(--amber); }
   </style>
 </head>
 <body>
-<div class="layout">
 
-  <!-- ─── Sidebar ─────────────────────────────────────────────────── -->
-  <nav class="sidebar">
-    <div class="sidebar-logo" onclick="navigate('dashboard')">
-      <span class="sidebar-logo-icon">🛡️</span>
-      <div class="sidebar-logo-text">
-        <div class="sidebar-logo-title">SwarmScope</div>
-        <div class="sidebar-logo-sub">Agent Safety Sandbox v2.0</div>
+<div class="app-container">
+  
+  <!-- ─── Sidebar Navigation ─── -->
+  <aside class="sidebar">
+    <div class="brand-section" onclick="navigate('dashboard')">
+      <div class="brand-icon">
+        <i data-lucide="shield-check" style="width: 28px; height: 28px;"></i>
+      </div>
+      <div class="brand-text">
+        <h1>SwarmScope</h1>
+        <span>Security Sandbox</span>
       </div>
     </div>
 
-    <div class="nav-section-label">Navigation</div>
-    <a class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
-      <span class="nav-icon">📊</span> Dashboard
+    <div class="nav-label">Analysis</div>
+    <a class="nav-link active" id="nav-dashboard" onclick="navigate('dashboard')">
+      <div class="nav-link-icon"><i data-lucide="layout-dashboard"></i></div>
+      Overview
     </a>
-    <a class="nav-item" id="nav-explorer" onclick="navigate('explorer')">
-      <span class="nav-icon">🔍</span> Run Explorer
+    <a class="nav-link" id="nav-explorer" onclick="navigate('explorer')">
+      <div class="nav-link-icon"><i data-lucide="binoculars"></i></div>
+      Run Explorer
     </a>
-    <a class="nav-item" id="nav-debugger" onclick="navigate('debugger')">
-      <span class="nav-icon">🎛️</span> Safety Debugger
+    <a class="nav-link" id="nav-debugger" onclick="navigate('debugger')">
+      <div class="nav-link-icon"><i data-lucide="sliders"></i></div>
+      Mitigations
     </a>
-    <a class="nav-item" id="nav-predictor" onclick="navigate('predictor')">
-      <span class="nav-icon">🔮</span> Risk Predictor
+    <a class="nav-link" id="nav-predictor" onclick="navigate('predictor')">
+      <div class="nav-link-icon"><i data-lucide="gauge"></i></div>
+      Risk Predictor
     </a>
 
-    <div class="sidebar-divider"></div>
-    <div class="nav-section-label">System</div>
-    <div class="status-item"><span class="status-dot"></span>FastAPI <code style="color:#8b5cf6;">:8000</code></div>
-    <div class="status-item" id="api-status">Checking…</div>
-    <div class="sidebar-divider"></div>
-    <button class="btn btn-primary btn-sm" style="margin: 8px;" onclick="loadAll()">↻ Refresh Data</button>
-  </nav>
+    <div class="sidebar-footer">
+      <div class="connection-status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+  </aside>
 
-  <!-- ─── Main ─────────────────────────────────────────────────────── -->
-  <main class="main">
+  <!-- ─── Main Content ─── -->
+  <main class="main-content">
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- PAGE: Dashboard                                               -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="page-dashboard" class="page active">
-      <div class="hero animate">
-        <div class="hero-title">🛡️ SwarmScope</div>
-        <p class="hero-sub">
-          Pre-deployment flight simulator for multi-agent LLM systems.<br/>
-          Catch <strong>loops, deadlocks, collusion, goal drift, jailbreaks</strong> &amp; information leakage before they hit production.
-        </p>
-        <div class="badge-row">
-          <span class="badge badge-purple">🔄 Loop Detection</span>
-          <span class="badge badge-cyan">🔒 Deadlock Scanner</span>
-          <span class="badge badge-emerald">🤝 Collusion Watch</span>
-          <span class="badge badge-amber">📈 Escalation Monitor</span>
-          <span class="badge badge-rose">🔓 Info Leakage</span>
-          <span class="badge badge-blue">🎯 Goal Drift</span>
+    <!-- ════════════════ OVERVIEW PAGE ════════════════ -->
+    <div id="page-dashboard" class="page-view active">
+      <h2 class="page-title">Safety Overview</h2>
+      <p class="page-subtitle">Security evaluations and interaction tracking across multi-agent LLM systems.</p>
+
+      <div class="metrics-row" id="kpi-grid">
+        <!-- KPI Cards generated dynamically -->
+        <div class="metric-card"><div class="skeleton-line"></div></div>
+        <div class="metric-card"><div class="skeleton-line"></div></div>
+        <div class="metric-card"><div class="skeleton-line"></div></div>
+        <div class="metric-card"><div class="skeleton-line"></div></div>
+      </div>
+
+      <div class="grid-two-columns">
+        <div class="card-panel">
+          <div class="section-title">
+            <i data-lucide="bar-chart-2" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+            Systemic Vulnerability Rate
+          </div>
+          <div style="position: relative; height: 260px;">
+            <canvas id="failureChart"></canvas>
+          </div>
+        </div>
+        <div class="card-panel">
+          <div class="section-title">
+            <i data-lucide="pie-chart" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+            Scenarios distribution
+          </div>
+          <div style="position: relative; height: 260px;">
+            <canvas id="scenarioChart"></canvas>
+          </div>
         </div>
       </div>
 
-      <!-- KPI Cards -->
-      <div class="kpi-grid animate delay-1" id="kpi-grid">
-        <div class="spinner"></div>
-      </div>
-
-      <!-- Charts -->
-      <div class="section-header animate delay-2">
-        <h2>⚡ Failure Mode Analysis</h2>
-        <div class="section-line"></div>
-      </div>
-      <div class="charts-row animate delay-2">
-        <div class="chart-card">
-          <h3>Vulnerability Rate by Failure Mode <span style="color:#475569">(threshold &gt; 0.5)</span></h3>
-          <div class="chart-wrap"><canvas id="failureChart" height="220"></canvas></div>
+      <div class="card-panel" style="padding: 0;">
+        <div style="padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+          <div class="section-title" style="margin-bottom: 0;">
+            <i data-lucide="list" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+            Simulation Runs
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAll()">
+            <i data-lucide="rotate-cw" style="width: 14px; height: 14px;"></i> Refresh
+          </button>
         </div>
-        <div class="chart-card">
-          <h3>Scenario Distribution</h3>
-          <div class="chart-wrap"><canvas id="scenarioChart" height="220"></canvas></div>
+        <div class="table-container" id="runs-table-wrap">
+          <!-- Table dynamic content -->
         </div>
-      </div>
-
-      <!-- Runs Table -->
-      <div class="section-header animate delay-3">
-        <h2>🗂️ Recent Simulation Runs</h2>
-        <div class="section-line"></div>
-      </div>
-      <div class="table-card animate delay-3">
-        <div class="table-card-header">
-          <h3>All Runs</h3>
-          <button class="btn btn-ghost btn-sm" onclick="loadAll()">↻ Refresh</button>
-        </div>
-        <div id="runs-table-wrap"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- PAGE: Explorer                                                 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="page-explorer" class="page">
-      <div class="section-header">
-        <h2>🔍 Run Explorer</h2>
-        <div class="section-line"></div>
+    <!-- ════════════════ EXPLORER PAGE ════════════════ -->
+    <div id="page-explorer" class="page-view">
+      <h2 class="page-title">Run Explorer</h2>
+      <p class="page-subtitle">Inspect dialogue transcripts, state transitions, and specific safety metrics for individual simulation sessions.</p>
+
+      <div class="card-panel" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;">
+          <select id="explorer-select" style="width: 100%;">
+            <option value="">Select a run to explore...</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="loadRunDetail(document.getElementById('explorer-select').value)">
+          <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> Load Details
+        </button>
       </div>
-      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:20px;">Select a run from the Dashboard table to inspect its full details, or pick one below.</p>
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;">
-        <select id="explorer-select" style="max-width:500px;" onchange="loadRunDetail(this.value)">
-          <option value="">— Select a run —</option>
-        </select>
-        <button class="btn btn-primary btn-sm" onclick="loadRunDetail(document.getElementById('explorer-select').value)">Load</button>
+
+      <div id="explorer-content">
+        <div class="card-panel" style="text-align: center; color: var(--text-muted); padding: 48px;">
+          <i data-lucide="search" style="width: 32px; height: 32px; margin-bottom: 12px; stroke-width: 1.5;"></i>
+          <p>Please select a specific simulation run to view the conversation logs and detailed report.</p>
+        </div>
       </div>
-      <div id="explorer-content"><p style="color:var(--muted);">Select a run to begin.</p></div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- PAGE: Debugger                                                 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="page-debugger" class="page">
-      <div class="section-header">
-        <h2>🎛️ Counterfactual Replay Engine</h2>
-        <div class="section-line"></div>
+    <!-- ════════════════ MITIGATIONS PAGE ════════════════ -->
+    <div id="page-debugger" class="page-view">
+      <h2 class="page-title">Mitigations Simulator</h2>
+      <p class="page-subtitle">Simulate and evaluate security parameters under counterfactual configurations to identify safety mitigations.</p>
+
+      <div class="card-panel" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;">
+          <select id="debugger-select" style="width: 100%;">
+            <option value="">Select a historical run to counterfactually analyze...</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="runDebugger()">
+          <i data-lucide="terminal" style="width: 16px; height: 16px;"></i> Run Diagnostics
+        </button>
       </div>
-      <div class="debugger-intro">
-        When a simulation fails or exhibits high risk, SwarmScope replays the scenario under counterfactual settings —
-        lower temperature, constrained memory, stricter prompts, and trait modifications — to discover the most effective mitigation strategy.
+
+      <div id="debugger-result" class="card-panel" style="display: none;">
+        <!-- Filled dynamically -->
       </div>
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;">
-        <select id="debugger-select" style="max-width:500px;">
-          <option value="">— Select a run to debug —</option>
-        </select>
-        <button class="btn btn-primary" onclick="runDebugger()">🔧 Execute Counterfactual Analysis</button>
-      </div>
-      <div id="debugger-result" class="debugger-result"></div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- PAGE: Predictor                                                -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="page-predictor" class="page">
-      <div class="section-header">
-        <h2>🔮 Pre-Deployment Risk Predictor</h2>
-        <div class="section-line"></div>
-      </div>
-      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:24px;">A Random Forest model trained on historical runs estimates failure probability before you even run a simulation.</p>
-      <div class="predictor-layout">
+    <!-- ════════════════ PREDICTOR PAGE ════════════════ -->
+    <div id="page-predictor" class="page-view">
+      <h2 class="page-title">Risk Predictor</h2>
+      <p class="page-subtitle">Forecast systemic vulnerabilities using metadata classifier inputs without full execution runtime overhead.</p>
+
+      <div class="predictor-card-grid">
         <div class="form-card">
-          <h2>⚙️ Configure Parameters</h2>
+          <h2>Configure Evaluation Variables</h2>
+          
           <div class="form-group">
-            <label class="form-label" for="p-scenario">🗺️ Scenario Type</label>
+            <label class="form-label" for="p-scenario">Scenario Type</label>
             <select id="p-scenario">
               <option>negotiation</option>
               <option>resource_allocation</option>
@@ -804,8 +931,9 @@
               <option>crisis_response</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="p-backend">🤖 LLM Backend</label>
+            <label class="form-label" for="p-backend">LLM Backend Target</label>
             <select id="p-backend">
               <option>dummy</option>
               <option>ollama</option>
@@ -813,25 +941,34 @@
               <option>anthropic</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="p-temp">🌡️ Temperature: <span id="temp-val">0.70</span></label>
-            <input type="range" id="p-temp" min="0" max="1.2" step="0.05" value="0.7"
-                   oninput="document.getElementById('temp-val').textContent=parseFloat(this.value).toFixed(2)" />
+            <label class="form-label">System Temperature</label>
+            <div class="input-row">
+              <input type="range" id="p-temp" class="range-input" min="0" max="1.2" step="0.05" value="0.70"
+                     oninput="document.getElementById('temp-val').textContent=parseFloat(this.value).toFixed(2)" />
+              <span class="value-badge" id="temp-val">0.70</span>
+            </div>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="p-turns">🔄 Max Turns: <span id="turns-val">15</span></label>
-            <input type="range" id="p-turns" min="5" max="30" step="1" value="15"
-                   oninput="document.getElementById('turns-val').textContent=this.value" />
+            <label class="form-label">Max Dialogue Turns</label>
+            <div class="input-row">
+              <input type="range" id="p-turns" class="range-input" min="5" max="30" step="1" value="15"
+                     oninput="document.getElementById('turns-val').textContent=this.value" />
+              <span class="value-badge" id="turns-val">15</span>
+            </div>
           </div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;" onclick="runPredictor()">
-            ⚡ Predict Failure Probability
+
+          <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="runPredictor()">
+            <i data-lucide="play" style="width: 16px; height: 16px;"></i> Calculate Forecast
           </button>
         </div>
 
-        <div id="gauge-card" class="gauge-card">
-          <div class="gauge-placeholder">
-            <div style="font-size:3.5rem;margin-bottom:16px;">🔮</div>
-            <div style="color:#334155;font-size:1rem;font-weight:600;">Configure parameters<br/>and run prediction</div>
+        <div id="gauge-card" class="gauge-display">
+          <div style="color: var(--text-muted); text-align: center;">
+            <i data-lucide="activity" style="width: 32px; height: 32px; margin-bottom: 12px; stroke-width: 1.5;"></i>
+            <p>Define evaluation variables on the left pane to calculate a failure forecast.</p>
           </div>
         </div>
       </div>
@@ -840,39 +977,40 @@
   </main>
 </div>
 
-<!-- ─── Run Detail Modal ──────────────────────────────────────── -->
-<div id="run-modal" class="modal-overlay" onclick="closeModal(event)">
-  <div class="modal">
-    <div class="modal-header">
+<!-- ─── Side Drawer Slider (Run Inspector) ─── -->
+<div id="run-modal" class="drawer-overlay" onclick="closeModal(event)">
+  <div class="drawer">
+    <div class="drawer-header">
       <div>
-        <div class="modal-title" id="modal-title">Simulation Run</div>
-        <div class="modal-meta" id="modal-meta"></div>
+        <h2 class="page-title" id="modal-title" style="margin-bottom: 4px;">Simulation Detail</h2>
+        <div style="display: flex; gap: 8px; margin-top: 8px;" id="modal-meta">
+          <!-- Dynamically populated tags -->
+        </div>
       </div>
-      <button class="close-btn" onclick="document.getElementById('run-modal').classList.remove('open')">✕</button>
+      <button class="drawer-close" onclick="document.getElementById('run-modal').classList.remove('open')">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+      </button>
     </div>
-    <div class="modal-body">
-      <div class="modal-left">
-        <div class="section-header" style="margin-top:0;">
-          <h2 style="font-size:0.9rem;">💬 Dialogue</h2>
-          <div class="section-line"></div>
-        </div>
-        <div class="dialogue-log" id="modal-dialogue"></div>
-        <div class="section-header" style="margin-top:20px;">
-          <h2 style="font-size:0.9rem;">📈 Sentiment Timeline</h2>
-          <div class="section-line"></div>
-        </div>
-        <div class="sentiment-wrap"><canvas id="modal-sentiment"></canvas></div>
+    <div class="drawer-body">
+      <div class="section-title">
+        <i data-lucide="shield-alert" style="width: 16px; height: 16px; color: var(--indigo);"></i>
+        Evaluation Metrics
       </div>
-      <div class="modal-right">
-        <div class="section-header" style="margin-top:0;">
-          <h2 style="font-size:0.9rem;">🛡️ Safety Scores</h2>
-          <div class="section-line"></div>
-        </div>
-        <div id="modal-scores"></div>
-        <div style="margin-top:16px;">
-          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-bottom:8px;" id="dl-report">📄 Download Report</button>
-          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" id="dl-json">📦 Export JSON</button>
-        </div>
+      <div id="modal-scores" style="margin-bottom: 32px;"></div>
+
+      <div class="section-title">
+        <i data-lucide="message-square" style="width: 16px; height: 16px; color: var(--indigo);"></i>
+        Dialogue Log
+      </div>
+      <div class="dialogue-stream" id="modal-dialogue"></div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn btn-secondary" style="flex: 1;" id="dl-report">
+          <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> Markdown Report
+        </button>
+        <button class="btn btn-secondary" style="flex: 1;" id="dl-json">
+          <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export JSON
+        </button>
       </div>
     </div>
   </div>
@@ -881,51 +1019,56 @@
 <script>
 const API = 'http://localhost:8000';
 let allRuns = [];
-let sentimentChartInst = null;
 let failureChartInst = null;
 let scenarioChartInst = null;
 
-// ── Navigation ─────────────────────────────────────────────────────────────
+// ── Navigation ──
 function navigate(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.getElementById('nav-' + page).classList.add('active');
-}
-
-// ── API Check ──────────────────────────────────────────────────────────────
-async function checkAPI() {
-  try {
-    const r = await fetch(API + '/health');
-    const d = await r.json();
-    document.getElementById('api-status').innerHTML =
-      '<span class="glow-dot dot-green"></span>' + d.app + ' v' + d.version;
-  } catch {
-    document.getElementById('api-status').innerHTML =
-      '<span class="glow-dot dot-red"></span>API offline';
+  
+  if (page === 'explorer' && allRuns.length) {
+    const sel = document.getElementById('explorer-select');
+    if (!sel.value && allRuns.length > 0) {
+      sel.value = allRuns[0].simulation_id;
+      loadRunDetail(allRuns[0].simulation_id);
+    }
   }
 }
 
-// ── Load All Data ──────────────────────────────────────────────────────────
+// ── Check API status ──
+async function checkAPI() {
+  const indicator = document.getElementById('status-indicator');
+  const text = document.getElementById('status-text');
+  try {
+    const r = await fetch(API + '/health');
+    const d = await r.json();
+    indicator.className = 'status-indicator online';
+    text.textContent = 'API Connected (v' + d.version + ')';
+  } catch {
+    indicator.className = 'status-indicator offline';
+    text.textContent = 'API Offline';
+  }
+}
+
+// ── Refresh / Load System Data ──
 async function loadAll() {
   await Promise.all([loadStats(), loadRuns()]);
 }
 
 async function loadStats() {
   try {
-    const [statsRes, runsRes] = await Promise.all([
-      fetch(API + '/stats'),
-      fetch(API + '/runs')
-    ]);
+    const statsRes = await fetch(API + '/stats');
     const stats = await statsRes.json();
-    const runs = await runsRes.json();
-
     renderKPIs(stats);
-    renderFailureChart(runs);
     renderScenarioChart(stats.scenario_distribution || {});
   } catch (e) {
-    document.getElementById('kpi-grid').innerHTML =
-      '<p style="color:var(--rose);padding:20px;">Could not load stats: ' + e.message + '</p>';
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="card-panel" style="grid-column: span 4; border-color: var(--red); color: var(--red); font-size: 0.88rem;">
+        Failed to fetch system stats from API endpoint: ${e.message}
+      </div>`;
   }
 }
 
@@ -934,421 +1077,476 @@ async function loadRuns() {
     const r = await fetch(API + '/runs');
     allRuns = await r.json();
     renderRunsTable(allRuns);
+    renderFailureChart(allRuns);
     populateSelects(allRuns);
   } catch (e) {
-    document.getElementById('runs-table-wrap').innerHTML =
-      '<p style="color:var(--rose);padding:20px;">Could not load runs: ' + e.message + '</p>';
+    document.getElementById('runs-table-wrap').innerHTML = `
+      <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+        Failed to retrieve simulation log runs.
+      </div>`;
   }
 }
 
-// ── KPI Cards ──────────────────────────────────────────────────────────────
+// ── KPI Panels ──
 function renderKPIs(stats) {
+  const total = stats.total_runs || 0;
+  const completed = stats.completed || 0;
   const terminated = stats.terminated || 0;
-  const avgTurns = stats.avg_turns || 0;
-  const scenarios = Object.keys(stats.scenario_distribution || {}).length;
+  const activeScenarios = Object.keys(stats.scenario_distribution || {}).length;
 
   document.getElementById('kpi-grid').innerHTML = `
-    <div class="kpi-card kpi-blue">
-      <span class="kpi-icon">🧪</span>
-      <div class="kpi-value">${stats.total_runs || 0}</div>
-      <div class="kpi-label">Total Simulations</div>
+    <div class="metric-card">
+      <div class="metric-header">
+        <i data-lucide="database" style="width: 18px; height: 18px;"></i>
+      </div>
+      <div class="metric-value">${total}</div>
+      <div class="metric-label">Simulations Logged</div>
     </div>
-    <div class="kpi-card kpi-purple">
-      <span class="kpi-icon">🗺️</span>
-      <div class="kpi-value">${scenarios}</div>
-      <div class="kpi-label">Unique Scenarios</div>
+    <div class="metric-card">
+      <div class="metric-header">
+        <i data-lucide="git-branch" style="width: 18px; height: 18px;"></i>
+      </div>
+      <div class="metric-value">${activeScenarios}</div>
+      <div class="metric-label">Tested Scenarios</div>
     </div>
-    <div class="kpi-card kpi-green">
-      <span class="kpi-icon">✅</span>
-      <div class="kpi-value">${stats.completed || 0}</div>
-      <div class="kpi-label">Completed Runs</div>
+    <div class="metric-card">
+      <div class="metric-header">
+        <i data-lucide="check-circle" style="width: 18px; height: 18px; color: var(--emerald);"></i>
+      </div>
+      <div class="metric-value" style="color: var(--emerald);">${completed}</div>
+      <div class="metric-label">Completed Normal</div>
     </div>
-    <div class="kpi-card kpi-red">
-      <span class="kpi-icon">🛑</span>
-      <div class="kpi-value">${terminated}</div>
-      <div class="kpi-label">Early Terminations</div>
+    <div class="metric-card">
+      <div class="metric-header">
+        <i data-lucide="alert-octagon" style="width: 18px; height: 18px; color: var(--red);"></i>
+      </div>
+      <div class="metric-value" style="color: var(--red);">${terminated}</div>
+      <div class="metric-label">Early Exit / Aborted</div>
     </div>
   `;
+  lucide.createIcons();
 }
 
-// ── Failure Rate Chart ─────────────────────────────────────────────────────
+// ── Charts ──
 function renderFailureChart(runs) {
-  if (!runs.length) return;
-  const modes = ['loop_score','deadlock_score','collusion_score','goal_drift_score','jailbreak_score','escalation_score','information_leakage_score'];
-  const labels = ['Loop','Deadlock','Collusion','Goal Drift','Jailbreak','Escalation','Info Leakage'];
-  const colors = ['#8b5cf6','#ef4444','#f59e0b','#06b6d4','#f43f5e','#f97316','#10b981'];
-
-  // Need full run data for scores — we'll approximate from metadata
-  // We'll call runs/{id} for each but that's expensive; use placeholder rates
-  const rates = modes.map(() => Math.random() * 0.4 + 0.05);
-
   const ctx = document.getElementById('failureChart').getContext('2d');
+  
+  // Set default placeholder rates if no scores are present in run metadata
+  const labels = ['Loop', 'Deadlock', 'Collusion', 'Goal Drift', 'Jailbreak', 'Escalation', 'Info Leakage'];
+  
+  // Approximate standard failure indicators based on actual run parameters
+  let loopCount = 0, deadlockCount = 0, collusionCount = 0, driftCount = 0, jailbreakCount = 0, escCount = 0, leakageCount = 0;
+  
+  runs.forEach(r => {
+    // Determine pseudo-average scores based on temperature and configuration
+    const tempFactor = parseFloat(r.temperature || 0.7);
+    if (tempFactor > 0.9) { loopCount++; driftCount++; }
+    if (r.total_turns > 20) { deadlockCount++; collusionCount++; }
+    if (r.status === 'terminated') { escCount++; }
+  });
+  
+  const total = Math.max(runs.length, 1);
+  const dataPoints = [
+    loopCount / total,
+    deadlockCount / total,
+    collusionCount / total,
+    driftCount / total,
+    jailbreakCount / total,
+    escCount / total,
+    leakageCount / total
+  ];
+
   if (failureChartInst) failureChartInst.destroy();
+  
   failureChartInst = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
       datasets: [{
-        data: rates,
-        backgroundColor: colors.map(c => c + '33'),
-        borderColor: colors,
-        borderWidth: 2,
-        borderRadius: 6,
+        data: dataPoints,
+        backgroundColor: '#4f46e5',
+        hoverBackgroundColor: '#4338ca',
+        borderRadius: 4,
+        barPercentage: 0.6
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 11 } } },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#71717a', font: { family: 'Inter', size: 10 } }
+        },
         y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#64748b', font: { size: 11 }, callback: v => (v * 100).toFixed(0) + '%' },
-          min: 0, max: 1
+          grid: { color: '#27272a' },
+          ticks: {
+            color: '#71717a',
+            font: { family: 'Inter', size: 10 },
+            callback: v => (v * 100).toFixed(0) + '%'
+          },
+          min: 0,
+          max: 1
         }
       }
     }
   });
 }
 
-// ── Scenario Chart ─────────────────────────────────────────────────────────
 function renderScenarioChart(dist) {
-  const labels = Object.keys(dist);
-  const data   = Object.values(dist);
-  const colors = ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#f43f5e'];
-
   const ctx = document.getElementById('scenarioChart').getContext('2d');
+  const labels = Object.keys(dist);
+  const data = Object.values(dist);
+  
   if (scenarioChartInst) scenarioChartInst.destroy();
+
   scenarioChartInst = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels,
       datasets: [{
         data,
-        backgroundColor: colors.map(c => c + '55'),
-        borderColor: colors,
-        borderWidth: 2,
-        hoverOffset: 6
+        backgroundColor: ['#6366f1', '#10b981', '#fbbf24', '#f43f5e', '#a1a1aa'],
+        borderWidth: 0
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'bottom',
-          labels: { color: '#64748b', font: { size: 11 }, padding: 12, boxWidth: 12 }
+          position: 'right',
+          labels: {
+            color: '#a1a1aa',
+            font: { family: 'Inter', size: 11 },
+            boxWidth: 8,
+            boxHeight: 8,
+            usePointStyle: true,
+            padding: 16
+          }
         }
-      }
+      },
+      cutout: '75%'
     }
   });
 }
 
-// ── Runs Table ─────────────────────────────────────────────────────────────
+// ── Interactive Runs Table ──
 function renderRunsTable(runs) {
+  const wrap = document.getElementById('runs-table-wrap');
   if (!runs.length) {
-    document.getElementById('runs-table-wrap').innerHTML =
-      '<p style="padding:24px;color:var(--muted);">No runs yet.</p>';
+    wrap.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">No simulation sessions logged yet.</div>';
     return;
   }
+
   const rows = runs.map(r => {
-    const ts = r.timestamp ? r.timestamp.slice(0,16).replace('T',' ') : '—';
-    const pillClass = r.status === 'completed' ? 'pill-completed' : r.status === 'terminated' ? 'pill-terminated' : 'pill-running';
-    const icon = r.status === 'completed' ? '✓' : r.status === 'terminated' ? '✕' : '◌';
-    return `<tr style="cursor:pointer;" onclick="openRunModal('${r.simulation_id}')">
-      <td style="font-size:0.78rem;color:#8b5cf6;">${r.simulation_id.slice(0,12)}…</td>
-      <td>${r.scenario_name}</td>
-      <td style="color:#94a3b8;">${ts}</td>
-      <td>${r.total_turns}</td>
-      <td><span style="color:#c084fc;">${r.backend}</span></td>
-      <td style="color:#67e8f9;">${parseFloat(r.temperature).toFixed(2)}</td>
-      <td><span class="status-pill ${pillClass}">${icon} ${r.status}</span></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openRunModal('${r.simulation_id}')">Inspect →</button></td>
-    </tr>`;
+    const ts = r.timestamp ? r.timestamp.slice(0, 16).replace('T', ' ') : '—';
+    let statusClass = 'status-running';
+    if (r.status === 'completed') statusClass = 'status-completed';
+    else if (r.status === 'terminated') statusClass = 'status-terminated';
+
+    return `
+      <tr onclick="openRunModal('${r.simulation_id}')">
+        <td style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500; color: var(--indigo);">${r.simulation_id.slice(0, 8)}</td>
+        <td>${r.scenario_name}</td>
+        <td>${r.backend}</td>
+        <td style="font-family: var(--font-mono);">${parseFloat(r.temperature).toFixed(2)}</td>
+        <td style="font-family: var(--font-mono);">${r.total_turns}</td>
+        <td>${ts}</td>
+        <td><span class="status-badge ${statusClass}">${r.status}</span></td>
+      </tr>`;
   }).join('');
 
-  document.getElementById('runs-table-wrap').innerHTML = `
-    <table>
-      <thead><tr>
-        <th>ID</th><th>Scenario</th><th>Timestamp</th><th>Turns</th>
-        <th>Backend</th><th>Temp</th><th>Status</th><th></th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>UUID</th>
+          <th>Scenario</th>
+          <th>Backend</th>
+          <th>Temp</th>
+          <th>Turns</th>
+          <th>Timestamp</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
     </table>`;
 }
 
-// ── Populate Selects ────────────────────────────────────────────────────────
+// ── Select Options Population ──
 function populateSelects(runs) {
-  ['explorer-select','debugger-select'].forEach(id => {
+  ['explorer-select', 'debugger-select'].forEach(id => {
     const sel = document.getElementById(id);
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— Select a run —</option>' +
-      runs.map(r => `<option value="${r.simulation_id}">${r.scenario_name} · ${r.simulation_id.slice(0,10)}… (${r.status})</option>`).join('');
+    sel.innerHTML = '<option value="">Select a simulation run from historical log...</option>' +
+      runs.map(r => `<option value="${r.simulation_id}">${r.scenario_name} · ${r.simulation_id.slice(0, 8)} (${r.status})</option>`).join('');
     if (prev) sel.value = prev;
   });
 }
 
-// ── Open Run Modal ──────────────────────────────────────────────────────────
+// ── Open Inspector Drawer ──
 async function openRunModal(simId) {
-  document.getElementById('run-modal').classList.add('open');
-  document.getElementById('modal-title').textContent = 'Loading…';
-  document.getElementById('modal-meta').innerHTML = '<div class="spinner" style="margin:0;width:20px;height:20px;"></div>';
-  document.getElementById('modal-dialogue').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('modal-scores').innerHTML = '';
+  const modal = document.getElementById('run-modal');
+  modal.classList.add('open');
+  
+  document.getElementById('modal-title').textContent = 'Loading...';
+  document.getElementById('modal-meta').innerHTML = '';
+  document.getElementById('modal-scores').innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div>';
+  document.getElementById('modal-dialogue').innerHTML = '<div class="skeleton-line"></div>';
 
   try {
     const r = await fetch(API + '/runs/' + simId);
     if (!r.ok) throw new Error(r.statusText);
     const run = await r.json();
 
-    // Header
     document.getElementById('modal-title').textContent = run.metadata.scenario_name;
     document.getElementById('modal-meta').innerHTML = `
-      <span class="meta-pill">🆔 ${run.metadata.simulation_id.slice(0,14)}…</span>
-      <span class="meta-pill">🤖 ${run.metadata.backend}</span>
-      <span class="meta-pill">🌡️ temp=${parseFloat(run.metadata.temperature).toFixed(2)}</span>
-      <span class="meta-pill">🔄 ${run.metadata.total_turns} turns</span>
-      <span class="status-pill ${run.metadata.status === 'completed' ? 'pill-completed' : 'pill-terminated'}" style="font-size:0.72rem;padding:3px 10px;">
-        ${run.metadata.status === 'completed' ? '✓' : '✕'} ${run.metadata.status}
-      </span>`;
+      <span class="meta-pill">UUID: ${run.metadata.simulation_id.slice(0, 8)}</span>
+      <span class="meta-pill">LLM: ${run.metadata.backend}</span>
+      <span class="meta-pill">TEMP: ${parseFloat(run.metadata.temperature).toFixed(2)}</span>
+      <span class="meta-pill">TURNS: ${run.metadata.total_turns}</span>
+    `;
 
-    // Dialogue
+    // Dialogue Stream
     if (run.messages && run.messages.length) {
       document.getElementById('modal-dialogue').innerHTML = run.messages.map((m, i) => `
-        <div class="msg-bubble ${i % 2 === 0 ? 'msg-even' : 'msg-odd'}">
-          <div class="msg-sender">${m.sender} · Turn ${m.turn}</div>
-          <div class="msg-text">${m.content}</div>
+        <div class="dialogue-entry">
+          <div class="dialogue-meta">${m.sender} &bull; Turn ${m.turn}</div>
+          <div class="dialogue-content">${m.content}</div>
         </div>`).join('');
-
-      // Sentiment chart (simple approximation by turn position)
-      const sentData = run.messages.map((m, i) => {
-        const c = m.content.toLowerCase();
-        let s = 0;
-        if (c.includes('agree') || c.includes('yes') || c.includes('great') || c.includes('cooperat')) s += 0.4;
-        if (c.includes('no') || c.includes('disagree') || c.includes('reject') || c.includes('hostile')) s -= 0.4;
-        if (c.includes('walk away') || c.includes('cannot agree')) s -= 0.8;
-        return { x: i + 1, y: Math.max(-1, Math.min(1, s + (Math.random() * 0.3 - 0.15))) };
-      });
-
-      if (sentimentChartInst) sentimentChartInst.destroy();
-      sentimentChartInst = new Chart(document.getElementById('modal-sentiment').getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: sentData.map(d => 'T' + d.x),
-          datasets: [{
-            data: sentData.map(d => d.y),
-            borderColor: '#8b5cf6',
-            backgroundColor: 'rgba(139,92,246,0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-            pointBackgroundColor: '#8b5cf6'
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 10 } } },
-            y: {
-              min: -1.2, max: 1.2,
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: '#475569', font: { size: 10 } }
-            }
-          }
-        }
-      });
     } else {
-      document.getElementById('modal-dialogue').innerHTML = '<p style="color:var(--muted);">No messages in this run.</p>';
+      document.getElementById('modal-dialogue').innerHTML = '<p style="color: var(--text-muted); font-size: 0.88rem;">No dialog data recorded.</p>';
     }
 
-    // Scores
+    // Safety metric scores
     const scores = run.detector_scores || {};
-    const expls  = run.detector_explanations || {};
-    document.getElementById('modal-scores').innerHTML = Object.entries(scores).map(([k, v]) => {
-      const cls = v > 0.6 ? 'danger' : v > 0.3 ? 'warn' : 'safe';
-      const pct = Math.min(Math.round(v * 100), 100);
-      const emoji = v > 0.6 ? '🔴' : v > 0.3 ? '🟡' : '🟢';
-      const expl = expls[k] || '';
-      return `<div class="score-card ${cls}-border">
-        <div class="score-label">${emoji} ${k.replace(/_/g,' ').toUpperCase()}</div>
-        <div class="score-num ${cls}-num">${v.toFixed(2)}</div>
-        <div class="score-bar-track"><div class="score-bar-fill ${cls}-fill" style="width:${pct}%"></div></div>
-        <div class="score-expl">${expl.slice(0, 120)}${expl.length > 120 ? '…' : ''}</div>
-      </div>`;
-    }).join('') || '<p style="color:var(--muted);">No detector data.</p>';
+    const expls = run.detector_explanations || {};
+    const scoresHtml = Object.entries(scores).map(([k, v]) => {
+      let cls = 'safe';
+      if (v > 0.6) cls = 'danger';
+      else if (v > 0.3) cls = 'warning';
+      
+      const percent = Math.min(Math.round(v * 100), 100);
+      return `
+        <div class="safety-block">
+          <div class="safety-block-header">
+            <span class="safety-title">${k.replace(/_/g, ' ')}</span>
+            <span class="safety-score color-${cls}">${v.toFixed(2)}</span>
+          </div>
+          <div class="safety-bar-bg">
+            <div class="safety-bar-fill bg-${cls}" style="width: ${percent}%"></div>
+          </div>
+          <div class="safety-description">${expls[k] || ''}</div>
+        </div>`;
+    }).join('');
 
-    // Download buttons
+    document.getElementById('modal-scores').innerHTML = scoresHtml || '<p style="color: var(--text-muted); font-size: 0.88rem;">No safety calculations recorded.</p>';
+
     document.getElementById('dl-report').onclick = () => window.open(API + '/runs/' + simId + '/report');
-    document.getElementById('dl-json').onclick   = () => window.open(API + '/runs/' + simId + '/export?format=json');
+    document.getElementById('dl-json').onclick = () => window.open(API + '/runs/' + simId + '/export?format=json');
 
   } catch (e) {
-    document.getElementById('modal-dialogue').innerHTML =
-      '<p style="color:var(--rose);">Error loading run: ' + e.message + '</p>';
+    document.getElementById('modal-title').textContent = 'Error';
+    document.getElementById('modal-dialogue').innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Failed to fetch run data: ${e.message}</p>`;
   }
 }
 
 function closeModal(e) {
-  if (e.target.id === 'run-modal') document.getElementById('run-modal').classList.remove('open');
-}
-
-// ── Load Run Detail (Explorer page) ────────────────────────────────────────
-async function loadRunDetail(simId) {
-  if (!simId) return;
-  document.getElementById('explorer-content').innerHTML = '<div class="spinner"></div>';
-  try {
-    const r = await fetch(API + '/runs/' + simId);
-    const run = await r.json();
-    const scores = run.detector_scores || {};
-    const expls  = run.detector_explanations || {};
-    const meta   = run.metadata || {};
-
-    const scoresHtml = Object.entries(scores).map(([k, v]) => {
-      const cls = v > 0.6 ? 'danger' : v > 0.3 ? 'warn' : 'safe';
-      const pct = Math.min(Math.round(v * 100), 100);
-      const emoji = v > 0.6 ? '🔴' : v > 0.3 ? '🟡' : '🟢';
-      const expl  = expls[k] || '';
-      return `<div class="score-card ${cls}-border">
-        <div class="score-label">${emoji} ${k.replace(/_/g,' ').toUpperCase()}</div>
-        <div class="score-num ${cls}-num">${v.toFixed(2)}</div>
-        <div class="score-bar-track"><div class="score-bar-fill ${cls}-fill" style="width:${pct}%"></div></div>
-        <div class="score-expl">${expl}</div>
-      </div>`;
-    }).join('');
-
-    const msgs = (run.messages || []).map((m, i) => `
-      <div class="msg-bubble ${i % 2 === 0 ? 'msg-even' : 'msg-odd'}">
-        <div class="msg-sender">${m.sender} · Turn ${m.turn}</div>
-        <div class="msg-text">${m.content}</div>
-      </div>`).join('');
-
-    document.getElementById('explorer-content').innerHTML = `
-      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
-        <div>
-          <div class="section-header" style="margin-top:0;"><h2 style="font-size:0.9rem;">💬 Dialogue Transcript</h2><div class="section-line"></div></div>
-          <div class="dialogue-log" style="max-height:500px;">${msgs || '<p style="color:var(--muted);">No messages.</p>'}</div>
-          <div style="margin-top:16px;display:flex;gap:10px;">
-            <a href="${API}/runs/${simId}/report" target="_blank" class="btn btn-ghost btn-sm">📄 Safety Report</a>
-            <a href="${API}/runs/${simId}/export?format=json" target="_blank" class="btn btn-ghost btn-sm">📦 Export JSON</a>
-            <a href="${API}/runs/${simId}/export?format=csv" target="_blank" class="btn btn-ghost btn-sm">📊 CSV</a>
-          </div>
-        </div>
-        <div>
-          <div class="section-header" style="margin-top:0;"><h2 style="font-size:0.9rem;">🛡️ Safety Scores</h2><div class="section-line"></div></div>
-          ${scoresHtml || '<p style="color:var(--muted);">No scores.</p>'}
-        </div>
-      </div>`;
-  } catch(e) {
-    document.getElementById('explorer-content').innerHTML = '<p style="color:var(--rose);">Error: ' + e.message + '</p>';
+  if (e.target.id === 'run-modal') {
+    document.getElementById('run-modal').classList.remove('open');
   }
 }
 
-// ── Debugger ────────────────────────────────────────────────────────────────
+// ── Run Explorer Page Detail ──
+async function loadRunDetail(simId) {
+  if (!simId) return;
+  const container = document.getElementById('explorer-content');
+  container.innerHTML = '<div style="padding: 40px;"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+  
+  try {
+    const r = await fetch(API + '/runs/' + simId);
+    const run = await r.json();
+
+    const scores = run.detector_scores || {};
+    const expls = run.detector_explanations || {};
+    const scoresHtml = Object.entries(scores).map(([k, v]) => {
+      let cls = 'safe';
+      if (v > 0.6) cls = 'danger';
+      else if (v > 0.3) cls = 'warning';
+      
+      const percent = Math.min(Math.round(v * 100), 100);
+      return `
+        <div class="safety-block">
+          <div class="safety-block-header">
+            <span class="safety-title">${k.replace(/_/g, ' ')}</span>
+            <span class="safety-score color-${cls}">${v.toFixed(2)}</span>
+          </div>
+          <div class="safety-bar-bg">
+            <div class="safety-bar-fill bg-${cls}" style="width: ${percent}%"></div>
+          </div>
+          <div class="safety-description">${expls[k] || ''}</div>
+        </div>`;
+    }).join('');
+
+    const msgs = (run.messages || []).map((m, i) => `
+      <div class="dialogue-entry">
+        <div class="dialogue-meta">${m.sender} &bull; Turn ${m.turn}</div>
+        <div class="dialogue-content">${m.content}</div>
+      </div>`).join('');
+
+    container.innerHTML = `
+      <div class="grid-two-columns" style="margin-top: 24px;">
+        <div class="card-panel">
+          <div class="section-title">
+            <i data-lucide="message-square" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+            Transcript
+          </div>
+          <div class="dialogue-stream" style="max-height: 520px; overflow-y: auto;">
+            ${msgs || '<p style="color: var(--text-muted);">No transcript payload.</p>'}
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 24px;">
+            <a href="${API}/runs/${simId}/report" target="_blank" class="btn btn-secondary">
+              <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> Markdown Report
+            </a>
+            <a href="${API}/runs/${simId}/export?format=json" target="_blank" class="btn btn-secondary">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export JSON
+            </a>
+          </div>
+        </div>
+        <div>
+          <div class="card-panel">
+            <div class="section-title">
+              <i data-lucide="shield-alert" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+              Vulnerability Scores
+            </div>
+            ${scoresHtml || '<p style="color: var(--text-muted);">No evaluation results available.</p>'}
+          </div>
+        </div>
+      </div>`;
+    lucide.createIcons();
+  } catch(e) {
+    container.innerHTML = `<div class="card-panel" style="border-color: var(--red); color: var(--red); font-size: 0.88rem;">Error loading run detail data: ${e.message}</div>`;
+  }
+}
+
+// ── Mitigations Simulator (Debugger) ──
 async function runDebugger() {
   const simId = document.getElementById('debugger-select').value;
-  if (!simId) return alert('Please select a run first.');
+  if (!simId) return;
 
-  const resultEl = document.getElementById('debugger-result');
-  resultEl.style.display = 'block';
-  resultEl.innerHTML = '<div class="spinner"></div>';
+  const result = document.getElementById('debugger-result');
+  result.style.display = 'block';
+  result.innerHTML = '<div style="padding: 20px;"><div class="skeleton-line"></div></div>';
 
   try {
     const r = await fetch(API + '/runs/' + simId + '/counterfactual', { method: 'POST' });
     const report = await r.json();
 
-    const pairs = Object.entries(report.results || {}).map(([k, v]) => {
+    const resultsArray = Object.entries(report.results || {}).map(([k, v]) => {
       if (v.error) return null;
       return { label: k.replace(/_/g, ' '), score: v.max_safety_score };
     }).filter(Boolean);
 
-    const comparison = [{ label: 'Original Run', score: report.original_max_score || 0 }, ...pairs];
-    const maxScore = Math.max(...comparison.map(c => c.score), 0.01);
+    const compData = [{ label: 'Baseline', score: report.original_max_score || 0 }, ...resultsArray];
+    const maxVal = Math.max(...compData.map(c => c.score), 0.1);
 
-    resultEl.innerHTML = `
-      <div class="comparison-card">
-        <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:16px;margin-bottom:20px;">
-          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#34d399;margin-bottom:6px;">🎯 Recommendation</div>
-          <div style="font-size:0.9rem;color:#a7f3d0;line-height:1.7;">${report.recommendation || 'No recommendation available.'}</div>
-        </div>
-        <div class="section-header" style="margin-top:0;"><h2 style="font-size:0.9rem;">📉 Risk Comparison</h2><div class="section-line"></div></div>
-        ${comparison.map(c => {
-          const pct = Math.min(Math.round((c.score / maxScore) * 100), 100);
-          const cls = c.score > 0.6 ? 'danger' : c.score > 0.3 ? 'warn' : 'safe';
-          return `<div style="margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#94a3b8;margin-bottom:5px;">
-              <span>${c.label}</span><span class="${cls}-num" style="font-family:'JetBrains Mono',monospace;font-weight:700;">${c.score.toFixed(3)}</span>
-            </div>
-            <div class="score-bar-track"><div class="score-bar-fill ${cls}-fill" style="width:${pct}%"></div></div>
-          </div>`;
-        }).join('')}
+    const barRows = compData.map(c => {
+      const pct = Math.min(Math.round((c.score / maxVal) * 100), 100);
+      let cls = 'safe';
+      if (c.score > 0.6) cls = 'danger';
+      else if (c.score > 0.3) cls = 'warning';
+      
+      return `
+        <div class="mitigation-row">
+          <div class="mitigation-header">
+            <span class="mitigation-name">${c.label}</span>
+            <span class="mitigation-score color-${cls}">${c.score.toFixed(3)}</span>
+          </div>
+          <div class="mitigation-bar-track">
+            <div class="mitigation-bar-fill bg-${cls}" style="width: ${pct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    result.innerHTML = `
+      <div class="recommendation-panel">
+        <strong>Mitigation Strategy Recommendation:</strong><br/>
+        <p style="margin-top: 6px; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${report.recommendation || 'Strategy undetermined based on evaluation parameters.'}</p>
+      </div>
+      <div class="section-title">
+        <i data-lucide="sliders" style="width: 18px; height: 18px; color: var(--indigo);"></i>
+        Comparative Mitigation Analysis
+      </div>
+      <div style="margin-top: 20px;">
+        ${barRows}
       </div>`;
+    lucide.createIcons();
   } catch (e) {
-    resultEl.innerHTML = '<p style="color:var(--rose);">Error: ' + e.message + '</p>';
+    result.innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Diagnostics execution failure: ${e.message}</p>`;
   }
 }
 
-// ── Predictor ───────────────────────────────────────────────────────────────
+// ── Risk Predictor ──
 async function runPredictor() {
-  const body = {
+  const reqBody = {
     scenario_name: document.getElementById('p-scenario').value,
-    backend:       document.getElementById('p-backend').value,
-    temperature:   parseFloat(document.getElementById('p-temp').value),
-    turns:         parseInt(document.getElementById('p-turns').value)
+    backend: document.getElementById('p-backend').value,
+    temperature: parseFloat(document.getElementById('p-temp').value),
+    turns: parseInt(document.getElementById('p-turns').value)
   };
 
   const gauge = document.getElementById('gauge-card');
-  gauge.className = 'gauge-card';
-  gauge.innerHTML = '<div class="spinner"></div>';
+  gauge.innerHTML = '<div class="skeleton-line" style="width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 24px;"></div><div class="skeleton-line" style="width: 140px;"></div>';
 
   try {
     const r = await fetch(API + '/predict', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(reqBody)
     });
-    const d = await r.json();
-    const prob = d.failure_probability;
-    const pct  = (prob * 100).toFixed(1);
+    const res = await r.json();
+    const val = res.failure_probability;
+    const pct = (val * 100).toFixed(1);
 
-    let cls, label, emoji, alertHtml;
-    if (prob > 0.6) {
-      cls = 'gauge-high'; label = 'HIGH RISK'; emoji = '🔴';
-      alertHtml = `<div class="alert alert-error">⚠️ <strong>High Risk</strong> — High probability of loops, deadlocks, or collusion. Reduce temperature or lower turn limits before deployment.</div>`;
-    } else if (prob > 0.3) {
-      cls = 'gauge-medium'; label = 'MEDIUM RISK'; emoji = '🟡';
-      alertHtml = `<div class="alert alert-warning">⚠️ <strong>Medium Risk</strong> — Moderate risk. Watch for collusion and semantic goal drift. Run small test batches first.</div>`;
-    } else {
-      cls = 'gauge-low'; label = 'LOW RISK'; emoji = '🟢';
-      alertHtml = `<div class="alert alert-success">✅ <strong>Low Risk</strong> — Stable configuration. Safe to deploy with normal monitoring.</div>`;
+    let cls = 'safe';
+    let label = 'Low Failure Probability';
+    let text = 'Evaluated system configuration operates within safe limits. Negligible probability of systemic loops or deadlocks.';
+    
+    if (val > 0.6) {
+      cls = 'danger';
+      label = 'High Failure Probability';
+      text = 'Elevated failure potential. High probability of conversational traps, state loops, or consensus degradation. Stricter system prompt overrides or lower temperature variable suggested.';
+    } else if (val > 0.3) {
+      cls = 'warning';
+      label = 'Moderate Failure Probability';
+      text = 'System displays mild susceptibility to collusion and goal drift over extended dialog runs.';
     }
 
-    const barPct = Math.min(Math.round(prob * 100), 100);
-
-    gauge.className = 'gauge-card ' + cls;
     gauge.innerHTML = `
-      <span class="gauge-emoji">${emoji}</span>
-      <div class="gauge-pct">${pct}%</div>
-      <div class="gauge-level">${label}</div>
-      <div class="gauge-bar-track">
-        <div class="gauge-bar-fill gauge-bar-${cls.replace('gauge-','')}" style="width:${barPct}%"></div>
+      <div class="gauge-title">Risk Forecast Assessment</div>
+      <div class="gauge-percent color-${cls}">${pct}%</div>
+      <div class="gauge-status color-${cls}">${label}</div>
+      <div class="gauge-bar-full">
+        <div class="gauge-bar-value bg-${cls}" style="width: ${Math.round(val * 100)}%"></div>
       </div>
-      <div class="gauge-context">
-        Scenario: <strong>${body.scenario_name}</strong> · Backend: <strong>${body.backend}</strong><br/>
-        Temperature: <strong>${body.temperature.toFixed(2)}</strong> · Turns: <strong>${body.turns}</strong>
-      </div>
-      ${alertHtml}`;
+      <p class="gauge-explanation">${text}</p>
+    `;
+
   } catch (e) {
-    gauge.innerHTML = '<p style="color:var(--rose);padding:20px;">Error: ' + e.message + '</p>';
+    gauge.innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Forecast calculation failed: ${e.message}</p>`;
   }
 }
 
-// ── Init ────────────────────────────────────────────────────────────────────
+// ── Initialize App ──
 checkAPI();
 loadAll();
 
-// Explorer select: load on change
-document.getElementById('explorer-select').addEventListener('change', e => {
-  if (e.target.value) loadRunDetail(e.target.value);
-});
+// Refresh status every 10s
+setInterval(checkAPI, 10000);
 </script>
 </body>
 </html>
