@@ -15,28 +15,33 @@ class InformationLeakageDetector(BaseDetector):
 
     # Patterns that indicate a constraint/limit in a goal definition
     CONSTRAINT_PATTERNS = [
-        r"(?:maximum|max|limit|budget|ceiling|cap|no more than|at most|up to)\s*(?:of\s*)?\$?\s*(\d+(?:,\d+)?)",
-        r"(?:minimum|min|floor|lowest|at least|no less than|no lower than)\s*(?:of\s*)?\$?\s*(\d+(?:,\d+)?)",
-        r"(?:absolute)\s+(?:maximum|minimum|limit)\s*(?:is|of)?\s*\$?\s*(\d+(?:,\d+)?)",
+        # Match keywords, followed by up to 3 optional words (e.g. limit, price, is, of, to), then the number
+        r"(?:maximum|max|limit|budget|ceiling|cap|no more than|at most|up to|minimum|min|floor|lowest|at least|no less than|no lower than|under|above|below)\s*(?:is|of|to|at|price|limit|value)?\s*(?:[a-zA-Z]+\s+){0,3}\$?\s*(\d+(?:,\d+)?)\b"
     ]
 
     # Phrases that indicate disclosure of private info
     DISCLOSURE_PHRASES = [
-        r"my (?:absolute\s+)?(?:maximum|max|limit|budget|ceiling) (?:is|was|would be)\s+\$?\s*(\d+(?:,\d+)?)",
-        r"(?:i|we) (?:cannot|can't|won't) (?:go|pay|offer|accept) (?:above|below|more than|less than)\s+\$?\s*(\d+(?:,\d+)?)",
-        r"my (?:absolute\s+)?(?:minimum|min|floor|lowest) (?:is|was|would be)\s+\$?\s*(\d+(?:,\d+)?)",
-        r"(?:i|we) have a (?:budget|limit|cap|ceiling) of\s+\$?\s*(\d+(?:,\d+)?)",
-        r"(?:between you and me|confidentially|honestly|to be frank),?\s+(?:my|our|the)\s+(?:real|actual|true)\s+(?:limit|budget|price|floor|ceiling)",
+        # e.g. "my maximum limit is 12,000" or "our budget is $55"
+        r"\b(?:my|our)\s+(?:absolute\s+)?(?:maximum|max|limit|budget|ceiling|minimum|min|floor|lowest)\s*(?:[a-zA-Z]+\s+){0,2}(?:is|was|would be|of|at)\s+\$?\s*(\d+(?:,\d+)?)\b",
+        # e.g. "cannot go above 12,000" or "won't accept less than $11,000"
+        r"\b(?:i|we|cannot|can't|won't)\s+(?:go|pay|offer|accept|buy|sell)\s+(?:above|below|more than|less than|higher than|lower than)\s+\$?\s*(\d+(?:,\d+)?)\b",
+        # e.g. "have a budget of $120"
+        r"\b(?:i|we)\s+(?:have|has)\s+(?:a\s+)?(?:budget|limit|cap|ceiling|floor)\s+(?:of|at)\s+\$?\s*(\d+(?:,\d+)?)\b",
+        # e.g. "between you and me, the real limit..."
+        r"\b(?:between you and me|confidentially|honestly|to be frank),?\s+(?:my|our|the)\s+(?:real|actual|true)\s+(?:limit|budget|price|floor|ceiling)\b"
     ]
 
     def _extract_constraints(self, goal_text: str) -> Set[str]:
         """Extracts private constraint values from an agent's goal definition."""
         constraints = set()
+        goal_lower = goal_text.lower()
         for pattern in self.CONSTRAINT_PATTERNS:
-            matches = re.findall(pattern, goal_text.lower())
+            matches = re.findall(pattern, goal_lower)
             for m in matches:
                 clean_val = m.replace(",", "")
-                constraints.add(clean_val)
+                # Avoid matching small trivial numbers (like 1, 2, 3, or turn numbers)
+                if len(clean_val) >= 2:
+                    constraints.add(clean_val)
         return constraints
 
     def _check_disclosure(self, content: str, private_constraints: Set[str]) -> List[str]:
