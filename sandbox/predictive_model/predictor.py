@@ -1,6 +1,5 @@
 import os
 import pickle
-from typing import Dict, Any
 from sandbox.predictive_model.train import train_and_save, MODEL_FILE, get_scenario_agent_count
 
 class FailurePredictor:
