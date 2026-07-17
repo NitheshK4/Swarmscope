@@ -1,4 +1,3 @@
-import pytest
 from sandbox.schemas import Message
 from sandbox.analytics.token_tracker import TokenTracker
 
