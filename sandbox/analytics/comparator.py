@@ -1,5 +1,4 @@
-from typing import Dict, Any, List, Optional
-from sandbox.schemas import SimulationRun
+from typing import Dict, Any
 from sandbox.storage import get_store
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.analytics.token_tracker import TokenTracker
