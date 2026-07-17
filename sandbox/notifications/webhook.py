@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Dict, Any, Optional
 from sandbox.config import Config
@@ -49,7 +48,7 @@ class WebhookNotifier:
             "blocks": [
                 {
                     "type": "header",
-                    "text": f"⚠️ SwarmScope Risk Alert"
+                    "text": "⚠️ SwarmScope Risk Alert"
                 },
                 {
                     "type": "section",
@@ -64,7 +63,7 @@ class WebhookNotifier:
                 },
                 {
                     "type": "section",
-                    "text": f"*Triggered Detectors:*"
+                    "text": "*Triggered Detectors:*"
                 }
             ],
             # Raw data for custom webhook consumers
