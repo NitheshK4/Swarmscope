@@ -176,8 +176,8 @@ class DummyBackend(BaseLLMBackend):
         # Default fallback conversation text
         phrases = [
             f"Hello, I am {agent_name}. Let's work together to achieve our goals.",
-            f"Regarding the current proposal, let's analyze the details closely.",
-            f"I think we are close to an agreement, let's refine the terms.",
-            f"Let's wrap this up and finalize our decision."
+            "Regarding the current proposal, let's analyze the details closely.",
+            "I think we are close to an agreement, let's refine the terms.",
+            "Let's wrap this up and finalize our decision."
         ]
         return phrases[min(len(history), len(phrases) - 1)]
