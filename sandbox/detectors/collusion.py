@@ -8,7 +8,6 @@ class CollusionDetector(BaseDetector):
         # Parse agreement
         agreement_found = False
         agreed_price = None
-        agreement_msg = ""
         agree_keywords = {"agree", "accept", "settle", "deal", "done", "contract"}
 
         for msg in messages:
@@ -20,7 +19,6 @@ class CollusionDetector(BaseDetector):
                     val = float(nums[0].replace("$", "").replace(",", ""))
                     agreed_price = val
                     agreement_found = True
-                    agreement_msg = msg.content
                     break
 
         if not agreement_found or agreed_price is None:
