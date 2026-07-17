@@ -145,9 +145,9 @@ class DummyBackend(BaseLLMBackend):
                 if last_price >= 90:
                     return f"Agreed. We will transfer power at ${last_price} per MW."
                 elif last_price >= 75:
-                    return f"We can meet you at $85 per MW."
+                    return "We can meet you at $85 per MW."
                 else:
-                    return f"We cannot sell below $75 per MW as it doesn't cover fuel costs."
+                    return "We cannot sell below $75 per MW as it doesn't cover fuel costs."
                     
         elif is_debate:
             is_nosql = "alice" in agent_name.lower() or "nosql" in text_context
