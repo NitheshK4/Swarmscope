@@ -56,7 +56,7 @@ def test_export_jsonl(sample_run):
     exporter = ConversationExporter()
     result = exporter.to_jsonl(sample_run)
 
-    lines = [l for l in result.strip().split("\n") if l]
+    lines = [line for line in result.strip().split("\n") if line]
     assert len(lines) == 4  # 1 metadata + 3 messages
 
     # First line should be metadata
