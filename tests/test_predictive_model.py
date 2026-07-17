@@ -1,6 +1,5 @@
-import pytest
 import os
-from sandbox.predictive_model.train import train_and_save, MODEL_FILE
+from sandbox.predictive_model.train import MODEL_FILE
 from sandbox.predictive_model.predictor import FailurePredictor
 
 def test_predictive_model():
