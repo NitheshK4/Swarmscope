@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict
 from sandbox.schemas import SimulationRun
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 
