@@ -11,7 +11,7 @@ class DuckDBStore(BaseStore):
     def _init_db(self):
         conn = duckdb.connect(self.db_path)
         try:
-            # Create runs table
+            # Create runs table with all detector score columns
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS runs (
                     simulation_id VARCHAR PRIMARY KEY,
@@ -25,10 +25,16 @@ class DuckDBStore(BaseStore):
                     deadlock_score DOUBLE,
                     collusion_score DOUBLE,
                     goal_drift_score DOUBLE,
+                    jailbreak_score DOUBLE,
+                    escalation_score DOUBLE,
+                    information_leakage_score DOUBLE,
                     loop_explanation VARCHAR,
                     deadlock_explanation VARCHAR,
                     collusion_explanation VARCHAR,
-                    goal_drift_explanation VARCHAR
+                    goal_drift_explanation VARCHAR,
+                    jailbreak_explanation VARCHAR,
+                    escalation_explanation VARCHAR,
+                    information_leakage_explanation VARCHAR
                 )
             """)
             # Create messages table
@@ -42,6 +48,29 @@ class DuckDBStore(BaseStore):
                     timestamp VARCHAR
                 )
             """)
+
+            # Migration: add new columns if they don't exist (for existing databases)
+            existing_columns = set()
+            try:
+                cols = conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'runs'").fetchall()
+                existing_columns = {c[0] for c in cols}
+            except Exception:
+                pass
+
+            new_columns = {
+                "jailbreak_score": "DOUBLE DEFAULT 0.0",
+                "escalation_score": "DOUBLE DEFAULT 0.0",
+                "information_leakage_score": "DOUBLE DEFAULT 0.0",
+                "jailbreak_explanation": "VARCHAR DEFAULT ''",
+                "escalation_explanation": "VARCHAR DEFAULT ''",
+                "information_leakage_explanation": "VARCHAR DEFAULT ''"
+            }
+            for col_name, col_type in new_columns.items():
+                if col_name not in existing_columns:
+                    try:
+                        conn.execute(f"ALTER TABLE runs ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass  # Column may already exist
         finally:
             conn.close()
 
@@ -57,12 +86,20 @@ class DuckDBStore(BaseStore):
                 INSERT OR REPLACE INTO runs (
                     simulation_id, scenario_name, timestamp, total_turns, backend, temperature, status,
                     loop_score, deadlock_score, collusion_score, goal_drift_score,
-                    loop_explanation, deadlock_explanation, collusion_explanation, goal_drift_explanation
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    jailbreak_score, escalation_score, information_leakage_score,
+                    loop_explanation, deadlock_explanation, collusion_explanation, goal_drift_explanation,
+                    jailbreak_explanation, escalation_explanation, information_leakage_explanation
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 m.simulation_id, m.scenario_name, m.timestamp, m.total_turns, m.backend, m.temperature, m.status,
-                d_scores.get("loop", 0.0), d_scores.get("deadlock", 0.0), d_scores.get("collusion", 0.0), d_scores.get("goal_drift", 0.0),
-                d_explanations.get("loop", ""), d_explanations.get("deadlock", ""), d_explanations.get("collusion", ""), d_explanations.get("goal_drift", "")
+                d_scores.get("loop", 0.0), d_scores.get("deadlock", 0.0),
+                d_scores.get("collusion", 0.0), d_scores.get("goal_drift", 0.0),
+                d_scores.get("jailbreak", 0.0), d_scores.get("escalation", 0.0),
+                d_scores.get("informationleakage", d_scores.get("information_leakage", 0.0)),
+                d_explanations.get("loop", ""), d_explanations.get("deadlock", ""),
+                d_explanations.get("collusion", ""), d_explanations.get("goal_drift", ""),
+                d_explanations.get("jailbreak", ""), d_explanations.get("escalation", ""),
+                d_explanations.get("informationleakage", d_explanations.get("information_leakage", ""))
             ))
             
             # Delete old messages for this simulation if any (for idempotency)
@@ -86,32 +123,38 @@ class DuckDBStore(BaseStore):
             if not row:
                 raise ValueError(f"Simulation run '{simulation_id}' not found.")
             
-            # Map columns
-            # schema order: simulation_id, scenario_name, timestamp, total_turns, backend, temperature, status,
-            # loop_score, deadlock_score, collusion_score, goal_drift_score,
-            # loop_explanation, deadlock_explanation, collusion_explanation, goal_drift_explanation
+            # Get column names for dynamic mapping
+            col_names = [desc[0] for desc in conn.execute("SELECT * FROM runs LIMIT 0").description]
+            row_dict = dict(zip(col_names, row))
+            
             metadata = SimulationMetadata(
-                simulation_id=row[0],
-                scenario_name=row[1],
-                timestamp=row[2],
-                total_turns=row[3],
-                backend=row[4],
-                temperature=row[5],
-                status=row[6]
+                simulation_id=row_dict["simulation_id"],
+                scenario_name=row_dict["scenario_name"],
+                timestamp=row_dict["timestamp"],
+                total_turns=row_dict["total_turns"],
+                backend=row_dict["backend"],
+                temperature=row_dict["temperature"],
+                status=row_dict["status"]
             )
             
             scores = {
-                "loop": row[7],
-                "deadlock": row[8],
-                "collusion": row[9],
-                "goal_drift": row[10]
+                "loop": row_dict.get("loop_score", 0.0),
+                "deadlock": row_dict.get("deadlock_score", 0.0),
+                "collusion": row_dict.get("collusion_score", 0.0),
+                "goal_drift": row_dict.get("goal_drift_score", 0.0),
+                "jailbreak": row_dict.get("jailbreak_score", 0.0),
+                "escalation": row_dict.get("escalation_score", 0.0),
+                "informationleakage": row_dict.get("information_leakage_score", 0.0)
             }
             
             explanations = {
-                "loop": row[11],
-                "deadlock": row[12],
-                "collusion": row[13],
-                "goal_drift": row[14]
+                "loop": row_dict.get("loop_explanation", ""),
+                "deadlock": row_dict.get("deadlock_explanation", ""),
+                "collusion": row_dict.get("collusion_explanation", ""),
+                "goal_drift": row_dict.get("goal_drift_explanation", ""),
+                "jailbreak": row_dict.get("jailbreak_explanation", ""),
+                "escalation": row_dict.get("escalation_explanation", ""),
+                "informationleakage": row_dict.get("information_leakage_explanation", "")
             }
             
             messages = self.get_run_messages(simulation_id)
@@ -164,5 +207,19 @@ class DuckDBStore(BaseStore):
                     timestamp=r[4]
                 ))
             return messages
+        finally:
+            conn.close()
+
+    def delete_run(self, simulation_id: str) -> None:
+        """Deletes a simulation run and its associated messages."""
+        conn = duckdb.connect(self.db_path)
+        try:
+            # Check if run exists
+            row = conn.execute("SELECT simulation_id FROM runs WHERE simulation_id = ?", (simulation_id,)).fetchone()
+            if not row:
+                raise ValueError(f"Simulation run '{simulation_id}' not found.")
+            
+            conn.execute("DELETE FROM messages WHERE simulation_id = ?", (simulation_id,))
+            conn.execute("DELETE FROM runs WHERE simulation_id = ?", (simulation_id,))
         finally:
             conn.close()

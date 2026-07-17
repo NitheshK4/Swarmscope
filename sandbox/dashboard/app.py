@@ -12,6 +12,9 @@ from sandbox.predictive_model import FailurePredictor, MarkovChainAnalyzer
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.analytics.report_generator import ReportGenerator
 from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
+from sandbox.analytics.exporter import ConversationExporter
+from sandbox.analytics.token_tracker import TokenTracker
+from sandbox.analytics.complexity_analyzer import ComplexityAnalyzer
 
 # Page Configuration for modern dashboard aesthetic
 st.set_page_config(
@@ -51,10 +54,8 @@ def check_and_seed_db():
     """Seeds the DB with dummy data if it's completely empty so the user is wowed immediately."""
     runs = store.get_all_runs()
     if not runs:
-        # Let's run 3 quick sample simulations to populate the DB
-        scenarios = ["negotiation", "resource_allocation", "debate_consensus"]
-        backends = ["dummy"]
-        
+        # Let's run quick sample simulations to populate the DB
+        scenarios = ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"]
         for sc in scenarios:
             path = f"scenarios/{sc}.yaml"
             if os.path.exists(path):
@@ -70,7 +71,7 @@ def check_and_seed_db():
 check_and_seed_db()
 
 st.title("🤖 Multi-Agent LLM: Emergent Behavior Sandbox")
-st.caption("A safety sandbox monitoring multi-agent setups for Loops, Deadlocks, Collusion, and Goal Drift.")
+st.caption("A safety sandbox monitoring multi-agent setups for Loops, Deadlocks, Collusion, Goal Drift, Jailbreak, Escalation, and Information Leakage.")
 
 # Sidebar Controls
 st.sidebar.title("Configuration & Control")
@@ -102,7 +103,10 @@ if action_choice == "Dashboard Overview":
                     mean(loop_score) as loop, 
                     mean(deadlock_score) as deadlock, 
                     mean(collusion_score) as collusion, 
-                    mean(goal_drift_score) as drift 
+                    mean(goal_drift_score) as drift,
+                    mean(jailbreak_score) as jailbreak,
+                    mean(escalation_score) as escalation,
+                    mean(information_leakage_score) as leakage
                 FROM runs
             """).fetchone()
             conn.close()
@@ -118,15 +122,18 @@ if action_choice == "Dashboard Overview":
         
         # Load scores
         conn = duckdb.connect(db_path)
-        df_scores = conn.execute("SELECT loop_score, deadlock_score, collusion_score, goal_drift_score FROM runs").df()
+        df_scores = conn.execute("SELECT loop_score, deadlock_score, collusion_score, goal_drift_score, jailbreak_score, escalation_score, information_leakage_score FROM runs").df()
         conn.close()
         
         if not df_scores.empty:
             fail_rates = {
-                "Loop Vulnerability": (df_scores["loop_score"] > 0.5).mean(),
-                "Deadlock Vulnerability": (df_scores["deadlock_score"] > 0.5).mean(),
-                "Collusion Vulnerability": (df_scores["collusion_score"] > 0.5).mean(),
-                "Goal Drift Vulnerability": (df_scores["goal_drift_score"] > 0.5).mean()
+                "Loop": (df_scores["loop_score"] > 0.5).mean(),
+                "Deadlock": (df_scores["deadlock_score"] > 0.5).mean(),
+                "Collusion": (df_scores["collusion_score"] > 0.5).mean(),
+                "Goal Drift": (df_scores["goal_drift_score"] > 0.5).mean(),
+                "Jailbreak": (df_scores["jailbreak_score"] > 0.5).mean(),
+                "Escalation": (df_scores["escalation_score"] > 0.5).mean(),
+                "Info Leakage": (df_scores["information_leakage_score"] > 0.5).mean()
             }
             
             df_fail_rates = pd.DataFrame(list(fail_rates.items()), columns=["Failure Mode", "Rate"])
@@ -162,6 +169,29 @@ elif action_choice == "Explore Run Details":
             df_sent = pd.DataFrame(sentiment_data)
             if not df_sent.empty:
                 st.line_chart(df_sent, x="turn", y="sentiment_score")
+
+            # Token and Complexity Details
+            st.subheader("🪙 Token usage & Linguistic Complexity")
+            
+            token_tracker = TokenTracker()
+            token_stats = token_tracker.track_token_usage(run.messages)
+            
+            comp_analyzer = ComplexityAnalyzer()
+            comp_stats = comp_analyzer.analyze_conversation(run.messages)
+            
+            tc1, tc2 = st.columns(2)
+            with tc1:
+                st.write(f"**Total Tokens (est):** `{token_stats.get('total_tokens', 0)}` (Avg/Turn: `{token_stats.get('avg_tokens_per_turn', 0)}`)")
+                st.write(f"**Speaker Dominance (Gini Coeff):** `{token_stats.get('gini_coefficient', 0.0):.2f}` (`{token_stats.get('fairness_label')}`)")
+                st.write(f"**Dominant Speaker:** `{token_stats.get('dominant_speaker')}`")
+            with tc2:
+                st.write("**Linguistic Complexity (Flesch-Kincaid / TTR):**")
+                for ag, summ in comp_stats.get("agent_summaries", {}).items():
+                    st.write(f"- `{ag}`: FK Grade: `{summ['overall_fk_grade']}`, Vocab Richness (TTR): `{summ['overall_ttr']}`")
+                if comp_stats.get("has_degradation"):
+                    st.warning("⚠️ Complexity degradation detected!")
+                    for sig in comp_stats.get("degradation_signals", []):
+                        st.write(f"  - {sig}")
                 
             # Markov State Projections
             st.write("---")
@@ -200,12 +230,12 @@ elif action_choice == "Explore Run Details":
         with col_right:
             st.subheader("Failure Analysis Scores")
             for f_mode, score in run.detector_scores.items():
-                st.metric(label=f_mode.capitalize(), value=f"{score:.2f}")
+                st.metric(label=f_mode.upper(), value=f"{score:.2f}")
                 st.caption(run.detector_explanations.get(f_mode, ""))
                 st.progress(min(max(float(score), 0.0), 1.0))
                 st.write("---")
                 
-            # Download Safety Report
+            # Download Safety Report & Exports
             st.subheader("📋 Actions")
             markdown_report = ReportGenerator.generate_markdown_report(run)
             st.download_button(
@@ -213,6 +243,34 @@ elif action_choice == "Explore Run Details":
                 data=markdown_report,
                 file_name=f"safety_report_{selected_id}.md",
                 mime="text/markdown",
+                use_container_width=True
+            )
+            
+            exporter = ConversationExporter()
+            json_export = exporter.to_json(run)
+            st.download_button(
+                label="📥 Export Run as JSON",
+                data=json_export,
+                file_name=f"run_{selected_id}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+            
+            csv_export = exporter.to_csv(run)
+            st.download_button(
+                label="📥 Export Run as CSV",
+                data=csv_export,
+                file_name=f"run_{selected_id}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+            jsonl_export = exporter.to_jsonl(run)
+            st.download_button(
+                label="📥 Export Run as JSONL",
+                data=jsonl_export,
+                file_name=f"run_{selected_id}.jsonl",
+                mime="application/x-ndjson",
                 use_container_width=True
             )
             st.write("---")
@@ -294,7 +352,7 @@ elif action_choice == "Live Risk Predictor":
     col1, col2 = st.columns(2)
     
     with col1:
-        scenario = st.selectbox("Scenario Type", ["negotiation", "resource_allocation", "debate_consensus"])
+        scenario = st.selectbox("Scenario Type", ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"])
         backend = st.selectbox("LLM Backend", ["dummy", "ollama", "openai", "anthropic"])
         temperature = st.slider("Temperature Setting", 0.0, 1.2, 0.7, step=0.05)
         turns = st.slider("Target Max Turns", 5, 30, 15, step=1)

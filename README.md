@@ -82,11 +82,17 @@ Monitors numerical proposal stagnation and refusal-heavy vocabulary. Flags when 
 ### 🤝 Collusion Detector
 Evaluates semantic agreement metrics that violate original constraints. Detects when agents secretly converge on terms they were told to reject.
 
+### 📈 Escalation Detector
+Tracks emotional escalation patterns across turns. Monitors for increasingly aggressive language (insults, threats, ultimatums) and scores the tone trajectory.
+
 </td>
 <td width="50%">
 
 ### 🎯 Goal Drift Detector
 Tracks semantic divergence from defined goals across conversation history. Catches when agents subtly abandon their original objectives.
+
+### 🔓 Information Leakage Detector
+Detects when agents accidentally or strategically reveal private constraints (absolute limits, budgets, minimums/maximums) that should remain hidden.
 
 ### 🎲 Monte Carlo Batch Engine
 Automated batches with randomized temperature jitter, shuffled agent sequences, and phrasing changes to capture statistical failure frequencies.
@@ -189,6 +195,9 @@ max_turns: 15
 | `negotiation` | 2 | Buyer vs. Seller — vintage car pricing with hard limits |
 | `resource_allocation` | 2+ | Grid energy sharing dispute with competing demands |
 | `debate_consensus` | 2+ | Software architecture debate requiring group consensus |
+| `supply_chain` | 3 | 3-agent supply chain negotiation (Supplier, Manufacturer, Retailer) |
+| `hiring_panel` | 3 | 3-agent committee debate (Tech Lead, HR, Department Head) |
+| `crisis_response` | 3 | 3-agent incident response under time & resource constraints |
 
 ---
 
@@ -204,8 +213,14 @@ The FastAPI server exposes these endpoints for programmatic access and SDK integ
 | `POST` | `/predict` | Instant ML risk prediction |
 | `GET` | `/runs` | List all historical runs |
 | `POST` | `/runs` | Register an external run |
+| `GET` | `/runs/{id}` | Get run details (messages & scores) |
+| `DELETE` | `/runs/{id}` | Delete a simulation run |
 | `POST` | `/runs/{id}/messages` | Stream messages into a run |
 | `POST` | `/runs/{id}/counterfactual` | Replay with mitigations |
+| `GET` | `/runs/{id}/export` | Export run as JSON, CSV, or JSONL |
+| `GET` | `/runs/{id}/report` | Get safety report (Markdown) |
+| `GET` | `/scenarios` | List available scenarios |
+| `GET` | `/stats` | Get aggregate statistics |
 
 <details>
 <summary><strong>Example: Run a simulation via cURL</strong></summary>

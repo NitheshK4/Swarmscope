@@ -14,7 +14,10 @@ def get_scenario_agent_count(scenario_name: str) -> int:
     counts = {
         "negotiation": 2,
         "resource_allocation": 2,
-        "debate_consensus": 2
+        "debate_consensus": 2,
+        "supply_chain": 3,
+        "hiring_panel": 3,
+        "crisis_response": 3
     }
     return counts.get(scenario_name, 3)
 
@@ -22,7 +25,7 @@ def generate_synthetic_data(num_samples: int = 100) -> List[Dict[str, Any]]:
     """Generates synthetic runs to seed the classifier training if the DB is empty."""
     data = []
     backends = ["dummy", "ollama", "openai", "anthropic"]
-    scenarios = ["negotiation", "resource_allocation", "debate_consensus"]
+    scenarios = ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"]
     
     for _ in range(num_samples):
         temp = random.uniform(0.1, 1.2)
@@ -71,13 +74,15 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
                 runs_exist = True
                 rows = conn.execute("""
                     SELECT scenario_name, backend, temperature, total_turns,
-                           loop_score, deadlock_score, collusion_score, goal_drift_score
+                           loop_score, deadlock_score, collusion_score, goal_drift_score,
+                           COALESCE(jailbreak_score, 0.0), COALESCE(escalation_score, 0.0),
+                           COALESCE(information_leakage_score, 0.0)
                     FROM runs
                 """).fetchall()
                 
                 for row in rows:
-                    scenario_name, backend, temp, turns, s1, s2, s3, s4 = row
-                    has_failure = 1 if max(s1, s2, s3, s4) > 0.5 else 0
+                    scenario_name, backend, temp, turns, s1, s2, s3, s4, s5, s6, s7 = row
+                    has_failure = 1 if max(s1, s2, s3, s4, s5, s6, s7) > 0.5 else 0
                     
                     features.append({
                         "scenario_name": scenario_name,
@@ -107,7 +112,7 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
 
 def encode_features(raw_features: List[Dict[str, Any]]) -> Tuple[List[List[float]], Dict[str, Any]]:
     """Manual one-hot encoding of categorical variables to keep model footprint small and lightweight."""
-    scenarios = ["negotiation", "resource_allocation", "debate_consensus"]
+    scenarios = ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"]
     backends = ["dummy", "ollama", "openai", "anthropic"]
     
     encoded = []

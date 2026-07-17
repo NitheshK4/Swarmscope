@@ -21,3 +21,8 @@ class BaseStore(ABC):
     def get_run_messages(self, simulation_id: str) -> list[Message]:
         """Retrieves all message logs associated with a given simulation ID."""
         pass
+
+    @abstractmethod
+    def delete_run(self, simulation_id: str) -> None:
+        """Deletes a simulation run and its associated messages."""
+        pass

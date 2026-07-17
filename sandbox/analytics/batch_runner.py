@@ -56,7 +56,10 @@ class BatchRunner:
             "loop": 0,
             "deadlock": 0,
             "collusion": 0,
-            "goal_drift": 0
+            "goal_drift": 0,
+            "jailbreak": 0,
+            "escalation": 0,
+            "informationleakage": 0
         }
         threshold = 0.5
 
