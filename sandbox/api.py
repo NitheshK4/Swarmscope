@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from sandbox.utils import load_scenario, generate_id, get_current_timestamp
 from sandbox.simulation import Simulation
 from sandbox.analytics.batch_runner import BatchRunner
