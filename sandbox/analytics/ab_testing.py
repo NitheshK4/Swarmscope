@@ -1,11 +1,10 @@
 import random
 import copy
 import statistics
-from typing import Dict, Any, List, Optional
-from sandbox.schemas import ScenarioConfig, SimulationRun
+from typing import Dict, Any, List
+from sandbox.schemas import SimulationRun
 from sandbox.simulation import Simulation
 from sandbox.utils import load_scenario
-from sandbox.analytics.comparator import SimulationComparator
 
 
 class ABTestRunner:
