@@ -1,4 +1,3 @@
-import pytest
 import os
 from sandbox.analytics.batch_runner import BatchRunner
 
