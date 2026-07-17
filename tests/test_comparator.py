@@ -1,4 +1,3 @@
-import pytest
 import os
 from sandbox.schemas import SimulationRun, SimulationMetadata, Message
 from sandbox.analytics.comparator import SimulationComparator
