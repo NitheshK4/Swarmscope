@@ -1,7 +1,7 @@
 import random
 import copy
 from typing import List, Dict, Any
-from sandbox.schemas import ScenarioConfig, SimulationRun
+from sandbox.schemas import SimulationRun
 from sandbox.simulation import Simulation
 from sandbox.utils import load_scenario
 
