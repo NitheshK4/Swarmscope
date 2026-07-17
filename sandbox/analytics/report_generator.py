@@ -1,4 +1,3 @@
-from typing import List
 from sandbox.schemas import SimulationRun
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 
