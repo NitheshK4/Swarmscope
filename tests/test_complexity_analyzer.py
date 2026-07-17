@@ -1,4 +1,3 @@
-import pytest
 from sandbox.schemas import Message
 from sandbox.analytics.complexity_analyzer import ComplexityAnalyzer
 
