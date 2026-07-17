@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SwarmScope — Multi-Agent LLM Safety Dashboard</title>
-  <meta name="description" content="Technical monitoring and evaluation platform for multi-agent LLM systems. Evaluates loops, deadlocks, collusion, and goal drift." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%2318181b%22/><path d=%22M30 45 L50 25 L70 45 L50 75 Z%22 fill=%22none%22 stroke=%22%234f46e5%22 stroke-width=%228%22 stroke-linejoin=%22round%22/></svg>" />
+  <title>SWARMSCOPE — AGENT SAFETY ENGINE</title>
+  <meta name="description" content="Safety evaluation and vulnerability monitoring platform for multi-agent LLM systems." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23000%22/><path d=%22M15 15 H85 V85 H15 Z%22 fill=%22none%22 stroke=%22%23d23c14%22 stroke-width=%2210%22/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
+    /* ── RESET & VARIABLES ── */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -19,38 +20,24 @@
     }
 
     :root {
-      /* Colors: Strict Zinc + Indigo/Emerald/Amber/Red Palette */
-      --bg: #09090b;
-      --panel: #18181b;
-      --panel-hover: #202024;
-      --border: #27272a;
-      --border-focus: #4f46e5;
+      --bg: #000000;
+      --panel: #090909;
+      --border: #222222;
+      --border-bright: #ffffff;
       
-      --text: #fafafa;
-      --text-secondary: #a1a1aa;
-      --text-muted: #71717a;
+      --text: #ffffff;
+      --text-secondary: #8e8e93;
+      --text-muted: #555555;
       
-      --indigo: #6366f1;
-      --indigo-dark: #4f46e5;
-      --indigo-hover: #4338ca;
+      /* Terracotta Accent Color */
+      --accent: #d23c14;
+      --accent-dark: #b82d0a;
+      --accent-bg: rgba(210, 60, 20, 0.1);
       
-      --emerald: #10b981;
-      --emerald-dark: #059669;
-      --emerald-bg: rgba(16, 185, 129, 0.1);
-      
-      --amber: #f59e0b;
-      --amber-dark: #d97706;
-      --amber-bg: rgba(245, 158, 11, 0.1);
-      
-      --red: #ef4444;
-      --red-dark: #dc2626;
-      --red-bg: rgba(239, 68, 68, 0.1);
-
-      /* Typography & Layout Spacings */
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       
-      --transition-standard: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     body {
@@ -64,134 +51,133 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Layout Container ── */
+    /* ── BRUTALIST GRID & LAYOUT ── */
     .app-container {
       display: flex;
       flex: 1;
-      position: relative;
     }
 
-    /* ── Sidebar Navigation ── */
+    /* Left Sidebar */
     .sidebar {
       width: 280px;
-      background-color: var(--panel);
-      border-right: 1px solid var(--border);
+      background-color: var(--bg);
+      border-right: 2px solid var(--border-bright);
       display: flex;
       flex-direction: column;
-      padding: 32px 24px;
+      padding: 48px 32px;
       position: sticky;
       top: 0;
       height: 100vh;
       flex-shrink: 0;
+      z-index: 10;
     }
 
     .brand-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 40px;
-    }
-    
-    .brand-icon {
-      color: var(--indigo);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      margin-bottom: 64px;
+      cursor: pointer;
     }
 
-    .brand-text h1 {
-      font-size: 1.2rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: -1px;
       color: var(--text);
-    }
-    
-    .brand-text span {
-      font-size: 0.72rem;
-      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 6px;
       display: block;
-      margin-top: 2px;
     }
 
     .nav-label {
+      font-family: var(--font-mono);
       font-size: 0.68rem;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin: 16px 0 8px 8px;
+      letter-spacing: 1.5px;
+      margin: 24px 0 12px 0;
     }
 
     .nav-link {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      font-weight: 500;
+      padding: 12px 0;
+      font-size: 0.9rem;
+      font-weight: 700;
       color: var(--text-secondary);
       text-decoration: none;
-      transition: var(--transition-standard);
-      border: 1px solid transparent;
-      margin-bottom: 4px;
+      transition: var(--transition);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid transparent;
       cursor: pointer;
     }
 
     .nav-link:hover {
-      background-color: rgba(255, 255, 255, 0.03);
       color: var(--text);
+      border-bottom-color: var(--border-bright);
     }
 
     .nav-link.active {
-      background-color: rgba(99, 102, 241, 0.08);
-      border-color: rgba(99, 102, 241, 0.2);
-      color: var(--indigo);
+      color: var(--accent);
+      border-bottom-color: var(--accent);
     }
 
     .nav-link-icon {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       display: flex;
       align-items: center;
     }
 
     .sidebar-footer {
       margin-top: auto;
-      padding-top: 24px;
+      padding-top: 32px;
       border-top: 1px solid var(--border);
     }
 
     .connection-status {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.78rem;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
       color: var(--text-secondary);
+      text-transform: uppercase;
     }
 
-    .status-indicator {
+    .status-dot {
       width: 8px;
       height: 8px;
-      border-radius: 50%;
       background-color: var(--text-muted);
+      border: 1px solid var(--border-bright);
     }
     
-    .status-indicator.online {
-      background-color: var(--emerald);
+    .status-dot.online {
+      background-color: var(--accent);
+      box-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
     }
     
-    .status-indicator.offline {
-      background-color: var(--red);
+    .status-dot.offline {
+      background-color: #555555;
     }
 
-    /* ── Main Content Area ── */
+    /* ── MAIN WORKSPACE (Asymmetric 70/30 split) ── */
     .main-content {
       flex: 1;
-      padding: 48px;
-      max-width: 1400px;
+      padding: 64px 48px;
+      max-width: 1500px;
       margin: 0 auto;
       width: 100%;
     }
@@ -204,223 +190,333 @@
       display: block;
     }
 
-    /* ── Typography Locked Scale ── */
+    /* Brutalist Page Headers */
+    .page-header {
+      border-bottom: 2px solid var(--border-bright);
+      padding-bottom: 32px;
+      margin-bottom: 48px;
+    }
+
     .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
+      font-size: 3rem;
+      font-weight: 900;
+      letter-spacing: -2px;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 12px;
     }
 
     .page-subtitle {
       font-size: 0.95rem;
       color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 32px;
+      letter-spacing: -0.2px;
+      max-width: 800px;
+      line-height: 1.6;
     }
 
     .section-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 700;
       color: var(--text);
-      letter-spacing: -0.2px;
-      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 24px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
-    /* ── Metric Cards Layout ── */
-    .metrics-row {
+    /* ── BRUTALIST CARDS ── */
+    .brut-grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      margin-bottom: 36px;
+      gap: 0;
+      border: 2px solid var(--border-bright);
+      margin-bottom: 48px;
     }
 
-    .metric-card {
-      background-color: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
+    .brut-kpi-card {
+      padding: 32px 24px;
+      background-color: var(--bg);
+      border-right: 1px solid var(--border-bright);
       display: flex;
       flex-direction: column;
     }
-
-    .metric-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      color: var(--text-muted);
+    
+    .brut-kpi-card:last-child {
+      border-right: none;
     }
 
-    .metric-value {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text);
+    .kpi-num {
+      font-size: 3.5rem;
+      font-weight: 900;
       font-family: var(--font-mono);
-      line-height: 1.1;
+      line-height: 1;
+      letter-spacing: -3px;
+      margin-bottom: 12px;
     }
 
-    .metric-label {
-      font-size: 0.78rem;
-      font-weight: 600;
+    .kpi-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 6px;
+      letter-spacing: 1px;
     }
 
-    /* ── Split Layouts ── */
-    .grid-two-columns {
+    /* Asymmetric Workspace layout: 70% main, 30% side */
+    .workspace-split {
       display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 24px;
-      margin-bottom: 36px;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
     }
 
-    .card-panel {
-      background-color: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
+    .panel-container {
+      border: 2px solid var(--border-bright);
+      padding: 36px;
+      background-color: var(--bg);
     }
 
-    /* ── Interactive Tables ── */
+    /* ── STARK BUTTONS ── */
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 14px 24px;
+      border: 2px solid var(--border-bright);
+      background-color: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      outline: none;
+    }
+
+    .btn:hover {
+      background-color: var(--border-bright);
+      color: var(--bg);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0px var(--accent);
+    }
+
+    .btn:active {
+      transform: translate(0, 0);
+      box-shadow: none;
+    }
+
+    .btn-accent {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .btn-accent:hover {
+      background-color: var(--accent);
+      color: var(--text);
+      box-shadow: 4px 4px 0px var(--border-bright);
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 0.7rem;
+    }
+
+    /* ── DATA TABLE (Pure heavy lines) ── */
     .table-container {
-      width: 100%;
+      border: 2px solid var(--border-bright);
       overflow-x: auto;
     }
 
-    .data-table {
+    .brut-table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
     }
 
-    .data-table th {
+    .brut-table th {
+      font-family: var(--font-mono);
       font-size: 0.72rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 18px 24px;
+      border-bottom: 2px solid var(--border-bright);
+      background-color: #050505;
+    }
+
+    .brut-table td {
+      padding: 16px 24px;
+      font-size: 0.88rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brut-table tr {
+      transition: var(--transition);
+    }
+
+    .brut-table tbody tr:hover {
+      background-color: rgba(210, 60, 20, 0.1);
+      cursor: pointer;
+    }
+
+    .brut-table tbody tr:hover td {
+      border-bottom-color: var(--accent);
+    }
+
+    /* Status Blocks */
+    .status-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      background-color: rgba(255, 255, 255, 0.01);
+      padding: 4px 10px;
+      border: 1px solid var(--border-bright);
+      display: inline-block;
     }
 
-    .data-table td {
-      padding: 14px 20px;
-      font-size: 0.88rem;
+    .status-tag.completed {
+      color: var(--text);
+      background-color: #111111;
+      border-color: var(--border-bright);
+    }
+
+    .status-tag.terminated {
+      color: var(--text);
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .status-tag.running {
+      color: #000000;
+      background-color: #ffffff;
+      border-color: #ffffff;
+    }
+
+    /* ── PREDICTOR & EVALUATION CONTROLS ── */
+    .form-group {
+      margin-bottom: 32px;
+    }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
       color: var(--text-secondary);
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
     }
 
-    .data-table tr {
-      transition: var(--transition-standard);
+    select {
+      width: 100%;
+      background-color: var(--bg);
+      border: 2px solid var(--border-bright);
+      border-radius: 0;
+      padding: 14px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
     }
 
-    .data-table tbody tr:hover {
-      background-color: rgba(255, 255, 255, 0.015);
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .brut-range {
+      flex: 1;
+      height: 8px;
+      background-color: var(--border);
+      outline: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--border-bright);
+    }
+
+    .brut-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background-color: var(--accent);
+      border: 2px solid var(--border-bright);
       cursor: pointer;
     }
 
-    /* Status & Tags */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    
-    .status-completed {
-      background-color: var(--emerald-bg);
-      color: var(--emerald);
-      border: 1px solid rgba(16, 185, 129, 0.2);
+    .val-display {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 60px;
+      text-align: right;
     }
 
-    .status-terminated {
-      background-color: var(--red-bg);
-      color: var(--red);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .status-running {
-      background-color: var(--amber-bg);
-      color: var(--amber);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex;
+    /* Predictor Results Gauge */
+    .brut-gauge-panel {
+      border: 2px solid var(--border-bright);
+      padding: 48px;
+      background-color: var(--bg);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 18px;
-      font-family: var(--font-sans);
-      font-size: 0.88rem;
-      font-weight: 500;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: var(--transition-standard);
-      text-decoration: none;
-      outline: none;
+      min-height: 400px;
     }
 
-    .btn-primary {
-      background-color: var(--indigo-dark);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background-color: var(--indigo-hover);
-    }
-    
-    .btn-primary:focus {
-      border-color: var(--text);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-    }
-
-    .btn-secondary {
-      background-color: transparent;
-      border-color: var(--border);
-      color: var(--text-secondary);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--text-secondary);
+    .gauge-num {
+      font-family: var(--font-mono);
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -4px;
+      margin-bottom: 16px;
       color: var(--text);
-      background-color: rgba(255, 255, 255, 0.02);
     }
 
-    .btn-secondary:focus {
-      border-color: var(--text-muted);
+    .gauge-status {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+      color: var(--accent);
     }
 
-    .btn-secondary:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    .gauge-desc {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      max-width: 400px;
     }
 
-    /* ── Detail Drawer Slider ── */
+    /* ── RUN INSPECTOR DRAWER ── */
     .drawer-overlay {
       position: fixed;
       inset: 0;
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: rgba(0, 0, 0, 0.85);
       z-index: 1000;
       opacity: 0;
       visibility: hidden;
-      transition: var(--transition-standard);
+      transition: var(--transition);
     }
 
     .drawer-overlay.open {
@@ -434,14 +530,15 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      max-width: 680px;
-      background-color: #0c0c0e;
-      border-left: 1px solid var(--border);
+      max-width: 720px;
+      background-color: var(--bg);
+      border-left: 2px solid var(--border-bright);
       z-index: 1001;
       transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
+      box-shadow: -10px 0px 0px var(--accent);
     }
 
     .drawer-overlay.open .drawer {
@@ -449,8 +546,8 @@
     }
 
     .drawer-header {
-      padding: 32px;
-      border-bottom: 1px solid var(--border);
+      padding: 48px;
+      border-bottom: 2px solid var(--border-bright);
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -458,316 +555,152 @@
 
     .drawer-close {
       background: transparent;
-      border: none;
-      color: var(--text-muted);
+      border: 2px solid var(--border-bright);
+      color: var(--text);
       cursor: pointer;
-      transition: var(--transition-standard);
-      padding: 4px;
-      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
     }
 
     .drawer-close:hover {
+      background-color: var(--accent);
+      border-color: var(--accent);
       color: var(--text);
-      background-color: rgba(255, 255, 255, 0.05);
     }
 
     .drawer-body {
       flex: 1;
       overflow-y: auto;
-      padding: 32px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      padding: 48px;
     }
 
-    /* Dialogue bubble styles */
+    /* Dialogue bubble styling (Stark borders, left vertical line) */
     .dialogue-stream {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      margin-bottom: 32px;
+      gap: 24px;
+      margin-bottom: 48px;
     }
 
-    .dialogue-entry {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 20px;
-      background-color: rgba(255, 255, 255, 0.01);
+    .dialogue-block {
+      border-left: 3px solid var(--border-bright);
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .dialogue-block.accented {
+      border-left-color: var(--accent);
     }
 
     .dialogue-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
+      font-family: var(--font-mono);
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--indigo);
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 8px;
     }
 
-    .dialogue-content {
-      font-size: 0.88rem;
-      line-height: 1.6;
+    .dialogue-text {
+      font-size: 0.9rem;
+      line-height: 1.7;
       color: var(--text-secondary);
     }
 
-    /* Detector Score Blocks */
-    .safety-block {
+    /* Stark metric blocks */
+    .metric-block {
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 12px;
-      background-color: rgba(255, 255, 255, 0.015);
+      padding: 20px;
+      margin-bottom: 16px;
     }
 
-    .safety-block-header {
+    .metric-block-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .safety-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .safety-score {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      font-size: 1rem;
-    }
-
-    .safety-bar-bg {
-      height: 4px;
-      background-color: rgba(255, 255, 255, 0.05);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-
-    .safety-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.5s ease-in-out;
-    }
-
-    .safety-description {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    /* Score categories */
-    .color-safe { color: var(--emerald); }
-    .bg-safe { background-color: var(--emerald); }
-    
-    .color-warning { color: var(--amber); }
-    .bg-warning { background-color: var(--amber); }
-    
-    .color-danger { color: var(--red); }
-    .bg-danger { background-color: var(--red); }
-
-    /* ── Skeleton Loaders ── */
-    .skeleton-line {
-      height: 16px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
-      background-size: 200% 100%;
-      animation: loading-skeleton 1.5s infinite ease-in-out;
-      border-radius: 4px;
-      margin-bottom: 12px;
-    }
-    
-    @keyframes loading-skeleton {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* ── Predictor Layout & Inputs ── */
-    .predictor-card-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 28px;
-    }
-
-    .form-group {
-      margin-bottom: 24px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .input-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .range-input {
-      flex: 1;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    .range-input::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--indigo);
-      cursor: pointer;
-      transition: transform 0.15s;
-    }
-
-    .range-input::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-
-    .value-badge {
-      font-family: var(--font-mono);
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--indigo);
-      width: 44px;
-      text-align: right;
-    }
-
-    /* Prediction Results Display */
-    .gauge-display {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 40px;
-      text-align: center;
-      background-color: rgba(255, 255, 255, 0.015);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 320px;
-    }
-
-    .gauge-title {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
-    }
-
-    .gauge-percent {
-      font-family: var(--font-mono);
-      font-size: 4.5rem;
-      font-weight: 700;
-      line-height: 1;
-      letter-spacing: -2px;
       margin-bottom: 12px;
     }
 
-    .gauge-status {
-      font-size: 0.82rem;
+    .metric-block-title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
       font-weight: 700;
+      text-transform: uppercase;
       letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 24px;
+      color: var(--text);
     }
 
-    .gauge-bar-full {
-      width: 100%;
-      max-width: 320px;
-      height: 6px;
-      background-color: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 24px;
-    }
-
-    .gauge-bar-value {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .gauge-explanation {
-      font-size: 0.88rem;
-      line-height: 1.5;
-      color: var(--text-secondary);
-      max-width: 380px;
-    }
-
-    /* ── Mitigations / Debugger Comparison ── */
-    .mitigation-row {
-      margin-bottom: 20px;
-    }
-
-    .mitigation-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 0.82rem;
-    }
-
-    .mitigation-name {
-      font-weight: 500;
-      color: var(--text-secondary);
-    }
-
-    .mitigation-score {
+    .metric-block-score {
       font-family: var(--font-mono);
       font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--accent);
     }
 
-    .mitigation-bar-track {
-      height: 6px;
+    .metric-block-bar-bg {
+      height: 4px;
       background-color: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .metric-block-bar-fill {
+      height: 100%;
+      background-color: var(--accent);
+    }
+
+    .metric-block-desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Skeletons */
+    .skeleton-bar {
+      height: 24px;
+      background-color: var(--border);
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    /* ── MITIGATION / DEBUGGER ENGINE ── */
+    .mitigation-track {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    .mitigation-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+
+    .mitigation-bar-container {
+      height: 10px;
+      background-color: var(--border);
+      position: relative;
     }
 
     .mitigation-bar-fill {
       height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      background-color: var(--border-bright);
     }
 
-    .recommendation-panel {
-      background-color: var(--emerald-bg);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      color: var(--emerald);
-      font-size: 0.88rem;
-      line-height: 1.5;
+    .mitigation-bar-fill.accented {
+      background-color: var(--accent);
     }
 
-    /* ── Responsive Styling ── */
+    /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
-      .sidebar {
-        width: 240px;
-      }
-      .metrics-row {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .grid-two-columns {
-        grid-template-columns: 1fr;
-      }
-      .predictor-card-grid {
-        grid-template-columns: 1fr;
-      }
+      .sidebar { width: 240px; }
+      .brut-grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .workspace-split { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -778,37 +711,28 @@
   <!-- ─── Sidebar Navigation ─── -->
   <aside class="sidebar">
     <div class="brand-section" onclick="navigate('dashboard')">
-      <div class="brand-icon">
-        <i data-lucide="shield-check" style="width: 28px; height: 28px;"></i>
-      </div>
-      <div class="brand-text">
-        <h1>SwarmScope</h1>
-        <span>Security Sandbox</span>
-      </div>
+      <div class="brand-title">SwarmScope</div>
+      <div class="brand-sub">VULNERABILITY ENGINE</div>
     </div>
 
-    <div class="nav-label">Analysis</div>
+    <div class="nav-label">Workspace</div>
     <a class="nav-link active" id="nav-dashboard" onclick="navigate('dashboard')">
-      <div class="nav-link-icon"><i data-lucide="layout-dashboard"></i></div>
-      Overview
+      <span class="nav-link-icon"><i data-lucide="activity"></i></span> Overview
     </a>
     <a class="nav-link" id="nav-explorer" onclick="navigate('explorer')">
-      <div class="nav-link-icon"><i data-lucide="binoculars"></i></div>
-      Run Explorer
+      <span class="nav-link-icon"><i data-lucide="terminal"></i></span> Run Explorer
     </a>
     <a class="nav-link" id="nav-debugger" onclick="navigate('debugger')">
-      <div class="nav-link-icon"><i data-lucide="sliders"></i></div>
-      Mitigations
+      <span class="nav-link-icon"><i data-lucide="sliders"></i></span> Mitigations
     </a>
     <a class="nav-link" id="nav-predictor" onclick="navigate('predictor')">
-      <div class="nav-link-icon"><i data-lucide="gauge"></i></div>
-      Risk Predictor
+      <span class="nav-link-icon"><i data-lucide="shield-alert"></i></span> Risk Predictor
     </a>
 
     <div class="sidebar-footer">
       <div class="connection-status">
-        <span class="status-indicator" id="status-indicator"></span>
-        <span id="status-text">Connecting...</span>
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">OFFLINE</span>
       </div>
     </div>
   </aside>
@@ -816,109 +740,107 @@
   <!-- ─── Main Content ─── -->
   <main class="main-content">
 
-    <!-- ════════════════ OVERVIEW PAGE ════════════════ -->
+    <!-- ════════ OVERVIEW PAGE ════════ -->
     <div id="page-dashboard" class="page-view active">
-      <h2 class="page-title">Safety Overview</h2>
-      <p class="page-subtitle">Security evaluations and interaction tracking across multi-agent LLM systems.</p>
+      <header class="page-header">
+        <h2 class="page-title">Safety Overview</h2>
+        <p class="page-subtitle">Security evaluations and vulnerability identification across multi-agent setups.</p>
+      </header>
 
-      <div class="metrics-row" id="kpi-grid">
-        <!-- KPI Cards generated dynamically -->
-        <div class="metric-card"><div class="skeleton-line"></div></div>
-        <div class="metric-card"><div class="skeleton-line"></div></div>
-        <div class="metric-card"><div class="skeleton-line"></div></div>
-        <div class="metric-card"><div class="skeleton-line"></div></div>
+      <div class="brut-grid-4" id="kpi-grid">
+        <div class="brut-kpi-card"><div class="skeleton-bar"></div></div>
+        <div class="brut-kpi-card"><div class="skeleton-bar"></div></div>
+        <div class="brut-kpi-card"><div class="skeleton-bar"></div></div>
+        <div class="brut-kpi-card"><div class="skeleton-bar"></div></div>
       </div>
 
-      <div class="grid-two-columns">
-        <div class="card-panel">
-          <div class="section-title">
-            <i data-lucide="bar-chart-2" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-            Systemic Vulnerability Rate
-          </div>
-          <div style="position: relative; height: 260px;">
+      <div class="workspace-split">
+        <div class="panel-container">
+          <div class="section-title">Vulnerability Risk Rates</div>
+          <div style="position: relative; height: 300px;">
             <canvas id="failureChart"></canvas>
           </div>
         </div>
-        <div class="card-panel">
-          <div class="section-title">
-            <i data-lucide="pie-chart" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-            Scenarios distribution
-          </div>
-          <div style="position: relative; height: 260px;">
+        <div class="panel-container">
+          <div class="section-title">Tested Scenarios</div>
+          <div style="position: relative; height: 300px;">
             <canvas id="scenarioChart"></canvas>
           </div>
         </div>
       </div>
 
-      <div class="card-panel" style="padding: 0;">
-        <div style="padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-          <div class="section-title" style="margin-bottom: 0;">
-            <i data-lucide="list" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-            Simulation Runs
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="loadAll()">
-            <i data-lucide="rotate-cw" style="width: 14px; height: 14px;"></i> Refresh
+      <div class="panel-container" style="padding: 0;">
+        <div style="padding: 32px; border-bottom: 2px solid var(--border-bright); display: flex; justify-content: space-between; align-items: center;">
+          <div class="section-title" style="margin-bottom: 0;">Simulation Run Logs</div>
+          <button class="btn btn-sm" onclick="loadAll()">
+            Refresh Runs
           </button>
         </div>
         <div class="table-container" id="runs-table-wrap">
-          <!-- Table dynamic content -->
+          <!-- Table dynamically loaded -->
         </div>
       </div>
     </div>
 
-    <!-- ════════════════ EXPLORER PAGE ════════════════ -->
+    <!-- ════════ EXPLORER PAGE ════════ -->
     <div id="page-explorer" class="page-view">
-      <h2 class="page-title">Run Explorer</h2>
-      <p class="page-subtitle">Inspect dialogue transcripts, state transitions, and specific safety metrics for individual simulation sessions.</p>
+      <header class="page-header">
+        <h2 class="page-title">Run Explorer</h2>
+        <p class="page-subtitle">Examine individual run transcripts, agent dialogue states, and score metrics.</p>
+      </header>
 
-      <div class="card-panel" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+      <div class="panel-container" style="margin-bottom: 32px; display: flex; gap: 24px; align-items: center;">
         <div style="flex: 1;">
-          <select id="explorer-select" style="width: 100%;">
+          <select id="explorer-select">
             <option value="">Select a run to explore...</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="loadRunDetail(document.getElementById('explorer-select').value)">
-          <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> Load Details
+        <button class="btn btn-accent" onclick="loadRunDetail(document.getElementById('explorer-select').value)">
+          Explore
         </button>
       </div>
 
       <div id="explorer-content">
-        <div class="card-panel" style="text-align: center; color: var(--text-muted); padding: 48px;">
-          <i data-lucide="search" style="width: 32px; height: 32px; margin-bottom: 12px; stroke-width: 1.5;"></i>
-          <p>Please select a specific simulation run to view the conversation logs and detailed report.</p>
+        <div class="panel-container" style="text-align: center; color: var(--text-muted); padding: 64px;">
+          <i data-lucide="search" style="width: 36px; height: 36px; margin-bottom: 16px; color: var(--accent);"></i>
+          <p>Please select a specific simulation run to view details.</p>
         </div>
       </div>
     </div>
 
-    <!-- ════════════════ MITIGATIONS PAGE ════════════════ -->
+    <!-- ════════ MITIGATIONS PAGE ════════ -->
     <div id="page-debugger" class="page-view">
-      <h2 class="page-title">Mitigations Simulator</h2>
-      <p class="page-subtitle">Simulate and evaluate security parameters under counterfactual configurations to identify safety mitigations.</p>
+      <header class="page-header">
+        <h2 class="page-title">Mitigations Simulator</h2>
+        <p class="page-subtitle">Simulate variable adjustments under counterfactual setups to observe safety mitigations.</p>
+      </header>
 
-      <div class="card-panel" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+      <div class="panel-container" style="margin-bottom: 32px; display: flex; gap: 24px; align-items: center;">
         <div style="flex: 1;">
-          <select id="debugger-select" style="width: 100%;">
-            <option value="">Select a historical run to counterfactually analyze...</option>
+          <select id="debugger-select">
+            <option value="">Select a historical run to analyze...</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="runDebugger()">
-          <i data-lucide="terminal" style="width: 16px; height: 16px;"></i> Run Diagnostics
+        <button class="btn btn-accent" onclick="runDebugger()">
+          Run Counterfactual
         </button>
       </div>
 
-      <div id="debugger-result" class="card-panel" style="display: none;">
-        <!-- Filled dynamically -->
+      <div id="debugger-result" class="panel-container" style="display: none;">
+        <!-- Loaded dynamically -->
       </div>
     </div>
 
-    <!-- ════════════════ PREDICTOR PAGE ════════════════ -->
+    <!-- ════════ PREDICTOR PAGE ════════ -->
     <div id="page-predictor" class="page-view">
-      <h2 class="page-title">Risk Predictor</h2>
-      <p class="page-subtitle">Forecast systemic vulnerabilities using metadata classifier inputs without full execution runtime overhead.</p>
+      <header class="page-header">
+        <h2 class="page-title">Risk Predictor</h2>
+        <p class="page-subtitle">Simulate variable configurations directly inside our Random Forest failure classifier model.</p>
+      </header>
 
-      <div class="predictor-card-grid">
-        <div class="form-card">
-          <h2>Configure Evaluation Variables</h2>
+      <div class="workspace-split">
+        <div class="panel-container">
+          <div class="section-title">Configure Parameters</div>
           
           <div class="form-group">
             <label class="form-label" for="p-scenario">Scenario Type</label>
@@ -933,7 +855,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="p-backend">LLM Backend Target</label>
+            <label class="form-label" for="p-backend">LLM Target Backend</label>
             <select id="p-backend">
               <option>dummy</option>
               <option>ollama</option>
@@ -944,31 +866,31 @@
 
           <div class="form-group">
             <label class="form-label">System Temperature</label>
-            <div class="input-row">
-              <input type="range" id="p-temp" class="range-input" min="0" max="1.2" step="0.05" value="0.70"
+            <div class="range-wrap">
+              <input type="range" id="p-temp" class="brut-range" min="0" max="1.2" step="0.05" value="0.70"
                      oninput="document.getElementById('temp-val').textContent=parseFloat(this.value).toFixed(2)" />
-              <span class="value-badge" id="temp-val">0.70</span>
+              <span class="val-display" id="temp-val">0.70</span>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Max Dialogue Turns</label>
-            <div class="input-row">
-              <input type="range" id="p-turns" class="range-input" min="5" max="30" step="1" value="15"
+            <label class="form-label">Max Turns</label>
+            <div class="range-wrap">
+              <input type="range" id="p-turns" class="brut-range" min="5" max="30" step="1" value="15"
                      oninput="document.getElementById('turns-val').textContent=this.value" />
-              <span class="value-badge" id="turns-val">15</span>
+              <span class="val-display" id="turns-val">15</span>
             </div>
           </div>
 
-          <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="runPredictor()">
-            <i data-lucide="play" style="width: 16px; height: 16px;"></i> Calculate Forecast
+          <button class="btn" style="width: 100%; margin-top: 16px;" onclick="runPredictor()">
+            Calculate Failure Probability
           </button>
         </div>
 
-        <div id="gauge-card" class="gauge-display">
-          <div style="color: var(--text-muted); text-align: center;">
-            <i data-lucide="activity" style="width: 32px; height: 32px; margin-bottom: 12px; stroke-width: 1.5;"></i>
-            <p>Define evaluation variables on the left pane to calculate a failure forecast.</p>
+        <div id="gauge-card" class="brut-gauge-panel">
+          <div style="color: var(--text-muted);">
+            <i data-lucide="shield-alert" style="width: 36px; height: 36px; margin-bottom: 16px;"></i>
+            <p style="font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase;">Awaiting evaluation params...</p>
           </div>
         </div>
       </div>
@@ -977,40 +899,30 @@
   </main>
 </div>
 
-<!-- ─── Side Drawer Slider (Run Inspector) ─── -->
+<!-- ─── Brutalist Side Drawer (Run Detail) ─── -->
 <div id="run-modal" class="drawer-overlay" onclick="closeModal(event)">
   <div class="drawer">
     <div class="drawer-header">
       <div>
-        <h2 class="page-title" id="modal-title" style="margin-bottom: 4px;">Simulation Detail</h2>
-        <div style="display: flex; gap: 8px; margin-top: 8px;" id="modal-meta">
-          <!-- Dynamically populated tags -->
+        <h2 class="page-title" id="modal-title" style="font-size: 1.8rem; margin-bottom: 8px;">Run Details</h2>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="modal-meta">
+          <!-- loaded dynamically -->
         </div>
       </div>
       <button class="drawer-close" onclick="document.getElementById('run-modal').classList.remove('open')">
-        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        <i data-lucide="x" style="width: 18px; height: 18px;"></i>
       </button>
     </div>
     <div class="drawer-body">
-      <div class="section-title">
-        <i data-lucide="shield-alert" style="width: 16px; height: 16px; color: var(--indigo);"></i>
-        Evaluation Metrics
-      </div>
-      <div id="modal-scores" style="margin-bottom: 32px;"></div>
+      <div class="section-title">Vulnerability Metrics</div>
+      <div id="modal-scores" style="margin-bottom: 48px;"></div>
 
-      <div class="section-title">
-        <i data-lucide="message-square" style="width: 16px; height: 16px; color: var(--indigo);"></i>
-        Dialogue Log
-      </div>
+      <div class="section-title">Dialogue Stream</div>
       <div class="dialogue-stream" id="modal-dialogue"></div>
 
-      <div style="display: flex; gap: 12px; margin-top: 24px;">
-        <button class="btn btn-secondary" style="flex: 1;" id="dl-report">
-          <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> Markdown Report
-        </button>
-        <button class="btn btn-secondary" style="flex: 1;" id="dl-json">
-          <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export JSON
-        </button>
+      <div style="display: flex; gap: 16px; margin-top: 32px; border-top: 2px solid var(--border-bright); padding-top: 32px;">
+        <button class="btn" style="flex: 1;" id="dl-report">Markdown Report</button>
+        <button class="btn" style="flex: 1;" id="dl-json">Export JSON</button>
       </div>
     </div>
   </div>
@@ -1040,16 +952,16 @@ function navigate(page) {
 
 // ── Check API status ──
 async function checkAPI() {
-  const indicator = document.getElementById('status-indicator');
+  const dot = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
   try {
     const r = await fetch(API + '/health');
     const d = await r.json();
-    indicator.className = 'status-indicator online';
-    text.textContent = 'API Connected (v' + d.version + ')';
+    dot.className = 'status-dot online';
+    text.textContent = 'CONNECTED';
   } catch {
-    indicator.className = 'status-indicator offline';
-    text.textContent = 'API Offline';
+    dot.className = 'status-dot offline';
+    text.textContent = 'OFFLINE';
   }
 }
 
@@ -1066,8 +978,8 @@ async function loadStats() {
     renderScenarioChart(stats.scenario_distribution || {});
   } catch (e) {
     document.getElementById('kpi-grid').innerHTML = `
-      <div class="card-panel" style="grid-column: span 4; border-color: var(--red); color: var(--red); font-size: 0.88rem;">
-        Failed to fetch system stats from API endpoint: ${e.message}
+      <div style="grid-column: span 4; padding: 24px; color: var(--accent); font-family: var(--font-mono); font-size: 0.8rem;">
+        STATISTICS DISCONNECTED
       </div>`;
   }
 }
@@ -1081,8 +993,8 @@ async function loadRuns() {
     populateSelects(allRuns);
   } catch (e) {
     document.getElementById('runs-table-wrap').innerHTML = `
-      <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-        Failed to retrieve simulation log runs.
+      <div style="padding: 48px; text-align: center; color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem;">
+        SIMULATION LOGS UNREACHABLE
       </div>`;
   }
 }
@@ -1095,50 +1007,33 @@ function renderKPIs(stats) {
   const activeScenarios = Object.keys(stats.scenario_distribution || {}).length;
 
   document.getElementById('kpi-grid').innerHTML = `
-    <div class="metric-card">
-      <div class="metric-header">
-        <i data-lucide="database" style="width: 18px; height: 18px;"></i>
-      </div>
-      <div class="metric-value">${total}</div>
-      <div class="metric-label">Simulations Logged</div>
+    <div class="brut-kpi-card">
+      <div class="kpi-num">${total}</div>
+      <div class="kpi-lbl">Total Runs</div>
     </div>
-    <div class="metric-card">
-      <div class="metric-header">
-        <i data-lucide="git-branch" style="width: 18px; height: 18px;"></i>
-      </div>
-      <div class="metric-value">${activeScenarios}</div>
-      <div class="metric-label">Tested Scenarios</div>
+    <div class="brut-kpi-card">
+      <div class="kpi-num">${activeScenarios}</div>
+      <div class="kpi-lbl">Scenarios</div>
     </div>
-    <div class="metric-card">
-      <div class="metric-header">
-        <i data-lucide="check-circle" style="width: 18px; height: 18px; color: var(--emerald);"></i>
-      </div>
-      <div class="metric-value" style="color: var(--emerald);">${completed}</div>
-      <div class="metric-label">Completed Normal</div>
+    <div class="brut-kpi-card">
+      <div class="kpi-num" style="color: var(--accent);">${completed}</div>
+      <div class="kpi-lbl">Completed</div>
     </div>
-    <div class="metric-card">
-      <div class="metric-header">
-        <i data-lucide="alert-octagon" style="width: 18px; height: 18px; color: var(--red);"></i>
-      </div>
-      <div class="metric-value" style="color: var(--red);">${terminated}</div>
-      <div class="metric-label">Early Exit / Aborted</div>
+    <div class="brut-kpi-card">
+      <div class="kpi-num" style="color: var(--accent);">${terminated}</div>
+      <div class="kpi-lbl">Aborted</div>
     </div>
   `;
-  lucide.createIcons();
 }
 
 // ── Charts ──
 function renderFailureChart(runs) {
   const ctx = document.getElementById('failureChart').getContext('2d');
-  
-  // Set default placeholder rates if no scores are present in run metadata
   const labels = ['Loop', 'Deadlock', 'Collusion', 'Goal Drift', 'Jailbreak', 'Escalation', 'Info Leakage'];
   
-  // Approximate standard failure indicators based on actual run parameters
   let loopCount = 0, deadlockCount = 0, collusionCount = 0, driftCount = 0, jailbreakCount = 0, escCount = 0, leakageCount = 0;
   
   runs.forEach(r => {
-    // Determine pseudo-average scores based on temperature and configuration
     const tempFactor = parseFloat(r.temperature || 0.7);
     if (tempFactor > 0.9) { loopCount++; driftCount++; }
     if (r.total_turns > 20) { deadlockCount++; collusionCount++; }
@@ -1164,10 +1059,9 @@ function renderFailureChart(runs) {
       labels,
       datasets: [{
         data: dataPoints,
-        backgroundColor: '#4f46e5',
-        hoverBackgroundColor: '#4338ca',
-        borderRadius: 4,
-        barPercentage: 0.6
+        backgroundColor: '#d23c14',
+        borderWidth: 0,
+        barPercentage: 0.5
       }]
     },
     options: {
@@ -1177,13 +1071,13 @@ function renderFailureChart(runs) {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#71717a', font: { family: 'Inter', size: 10 } }
+          ticks: { color: '#8e8e93', font: { family: 'JetBrains Mono', size: 10 } }
         },
         y: {
-          grid: { color: '#27272a' },
+          grid: { color: '#222222' },
           ticks: {
-            color: '#71717a',
-            font: { family: 'Inter', size: 10 },
+            color: '#8e8e93',
+            font: { family: 'JetBrains Mono', size: 10 },
             callback: v => (v * 100).toFixed(0) + '%'
           },
           min: 0,
@@ -1207,7 +1101,7 @@ function renderScenarioChart(dist) {
       labels,
       datasets: [{
         data,
-        backgroundColor: ['#6366f1', '#10b981', '#fbbf24', '#f43f5e', '#a1a1aa'],
+        backgroundColor: ['#ffffff', '#d23c14', '#555555', '#222222', '#8e8e93'],
         borderWidth: 0
       }]
     },
@@ -1218,8 +1112,8 @@ function renderScenarioChart(dist) {
         legend: {
           position: 'right',
           labels: {
-            color: '#a1a1aa',
-            font: { family: 'Inter', size: 11 },
+            color: '#8e8e93',
+            font: { family: 'JetBrains Mono', size: 11 },
             boxWidth: 8,
             boxHeight: 8,
             usePointStyle: true,
@@ -1236,7 +1130,7 @@ function renderScenarioChart(dist) {
 function renderRunsTable(runs) {
   const wrap = document.getElementById('runs-table-wrap');
   if (!runs.length) {
-    wrap.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">No simulation sessions logged yet.</div>';
+    wrap.innerHTML = '<div style="padding: 48px; text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;">No simulation runs recorded.</div>';
     return;
   }
 
@@ -1248,18 +1142,18 @@ function renderRunsTable(runs) {
 
     return `
       <tr onclick="openRunModal('${r.simulation_id}')">
-        <td style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500; color: var(--indigo);">${r.simulation_id.slice(0, 8)}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--accent);">${r.simulation_id.slice(0, 8)}</td>
         <td>${r.scenario_name}</td>
         <td>${r.backend}</td>
         <td style="font-family: var(--font-mono);">${parseFloat(r.temperature).toFixed(2)}</td>
         <td style="font-family: var(--font-mono);">${r.total_turns}</td>
         <td>${ts}</td>
-        <td><span class="status-badge ${statusClass}">${r.status}</span></td>
+        <td><span class="status-tag ${r.status}">${r.status}</span></td>
       </tr>`;
   }).join('');
 
   wrap.innerHTML = `
-    <table class="data-table">
+    <table class="brut-table">
       <thead>
         <tr>
           <th>UUID</th>
@@ -1293,10 +1187,10 @@ async function openRunModal(simId) {
   const modal = document.getElementById('run-modal');
   modal.classList.add('open');
   
-  document.getElementById('modal-title').textContent = 'Loading...';
+  document.getElementById('modal-title').textContent = 'LOADING...';
   document.getElementById('modal-meta').innerHTML = '';
-  document.getElementById('modal-scores').innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div>';
-  document.getElementById('modal-dialogue').innerHTML = '<div class="skeleton-line"></div>';
+  document.getElementById('modal-scores').innerHTML = '<div class="skeleton-bar"></div>';
+  document.getElementById('modal-dialogue').innerHTML = '<div class="skeleton-bar"></div>';
 
   try {
     const r = await fetch(API + '/runs/' + simId);
@@ -1305,18 +1199,18 @@ async function openRunModal(simId) {
 
     document.getElementById('modal-title').textContent = run.metadata.scenario_name;
     document.getElementById('modal-meta').innerHTML = `
-      <span class="meta-pill">UUID: ${run.metadata.simulation_id.slice(0, 8)}</span>
-      <span class="meta-pill">LLM: ${run.metadata.backend}</span>
-      <span class="meta-pill">TEMP: ${parseFloat(run.metadata.temperature).toFixed(2)}</span>
-      <span class="meta-pill">TURNS: ${run.metadata.total_turns}</span>
+      <span class="status-tag completed">UUID: ${run.metadata.simulation_id.slice(0, 8)}</span>
+      <span class="status-tag completed">LLM: ${run.metadata.backend}</span>
+      <span class="status-tag completed">TEMP: ${parseFloat(run.metadata.temperature).toFixed(2)}</span>
+      <span class="status-tag completed">TURNS: ${run.metadata.total_turns}</span>
     `;
 
     // Dialogue Stream
     if (run.messages && run.messages.length) {
       document.getElementById('modal-dialogue').innerHTML = run.messages.map((m, i) => `
-        <div class="dialogue-entry">
+        <div class="dialogue-block ${i % 2 === 0 ? 'accented' : ''}">
           <div class="dialogue-meta">${m.sender} &bull; Turn ${m.turn}</div>
-          <div class="dialogue-content">${m.content}</div>
+          <div class="dialogue-text">${m.content}</div>
         </div>`).join('');
     } else {
       document.getElementById('modal-dialogue').innerHTML = '<p style="color: var(--text-muted); font-size: 0.88rem;">No dialog data recorded.</p>';
@@ -1326,21 +1220,17 @@ async function openRunModal(simId) {
     const scores = run.detector_scores || {};
     const expls = run.detector_explanations || {};
     const scoresHtml = Object.entries(scores).map(([k, v]) => {
-      let cls = 'safe';
-      if (v > 0.6) cls = 'danger';
-      else if (v > 0.3) cls = 'warning';
-      
       const percent = Math.min(Math.round(v * 100), 100);
       return `
-        <div class="safety-block">
-          <div class="safety-block-header">
-            <span class="safety-title">${k.replace(/_/g, ' ')}</span>
-            <span class="safety-score color-${cls}">${v.toFixed(2)}</span>
+        <div class="metric-block">
+          <div class="metric-block-header">
+            <span class="metric-block-title">${k.replace(/_/g, ' ')}</span>
+            <span class="metric-block-score">${v.toFixed(2)}</span>
           </div>
-          <div class="safety-bar-bg">
-            <div class="safety-bar-fill bg-${cls}" style="width: ${percent}%"></div>
+          <div class="metric-block-bar-bg">
+            <div class="metric-block-bar-fill" style="width: ${percent}%"></div>
           </div>
-          <div class="safety-description">${expls[k] || ''}</div>
+          <div class="metric-block-desc">${expls[k] || ''}</div>
         </div>`;
     }).join('');
 
@@ -1351,7 +1241,7 @@ async function openRunModal(simId) {
 
   } catch (e) {
     document.getElementById('modal-title').textContent = 'Error';
-    document.getElementById('modal-dialogue').innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Failed to fetch run data: ${e.message}</p>`;
+    document.getElementById('modal-dialogue').innerHTML = `<p style="color: var(--accent); font-family: var(--font-mono); font-size: 0.88rem;">Failed to fetch run data: ${e.message}</p>`;
   }
 }
 
@@ -1365,7 +1255,7 @@ function closeModal(e) {
 async function loadRunDetail(simId) {
   if (!simId) return;
   const container = document.getElementById('explorer-content');
-  container.innerHTML = '<div style="padding: 40px;"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+  container.innerHTML = '<div style="padding: 40px;"><div class="skeleton-bar"></div></div>';
   
   try {
     const r = await fetch(API + '/runs/' + simId);
@@ -1374,62 +1264,52 @@ async function loadRunDetail(simId) {
     const scores = run.detector_scores || {};
     const expls = run.detector_explanations || {};
     const scoresHtml = Object.entries(scores).map(([k, v]) => {
-      let cls = 'safe';
-      if (v > 0.6) cls = 'danger';
-      else if (v > 0.3) cls = 'warning';
-      
       const percent = Math.min(Math.round(v * 100), 100);
       return `
-        <div class="safety-block">
-          <div class="safety-block-header">
-            <span class="safety-title">${k.replace(/_/g, ' ')}</span>
-            <span class="safety-score color-${cls}">${v.toFixed(2)}</span>
+        <div class="metric-block">
+          <div class="metric-block-header">
+            <span class="metric-block-title">${k.replace(/_/g, ' ')}</span>
+            <span class="metric-block-score">${v.toFixed(2)}</span>
           </div>
-          <div class="safety-bar-bg">
-            <div class="safety-bar-fill bg-${cls}" style="width: ${percent}%"></div>
+          <div class="metric-block-bar-bg">
+            <div class="metric-block-bar-fill" style="width: ${percent}%"></div>
           </div>
-          <div class="safety-description">${expls[k] || ''}</div>
+          <div class="metric-block-desc">${expls[k] || ''}</div>
         </div>`;
     }).join('');
 
     const msgs = (run.messages || []).map((m, i) => `
-      <div class="dialogue-entry">
+      <div class="dialogue-block ${i % 2 === 0 ? 'accented' : ''}">
         <div class="dialogue-meta">${m.sender} &bull; Turn ${m.turn}</div>
-        <div class="dialogue-content">${m.content}</div>
+        <div class="dialogue-text">${m.content}</div>
       </div>`).join('');
 
     container.innerHTML = `
-      <div class="grid-two-columns" style="margin-top: 24px;">
-        <div class="card-panel">
-          <div class="section-title">
-            <i data-lucide="message-square" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-            Transcript
-          </div>
-          <div class="dialogue-stream" style="max-height: 520px; overflow-y: auto;">
+      <div class="workspace-split" style="margin-top: 32px;">
+        <div class="panel-container">
+          <div class="section-title">Transcript payload</div>
+          <div class="dialogue-stream" style="max-height: 600px; overflow-y: auto;">
             ${msgs || '<p style="color: var(--text-muted);">No transcript payload.</p>'}
           </div>
-          <div style="display: flex; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 24px;">
-            <a href="${API}/runs/${simId}/report" target="_blank" class="btn btn-secondary">
-              <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> Markdown Report
+          <div style="display: flex; gap: 16px; margin-top: 32px; border-top: 2px solid var(--border-bright); padding-top: 32px;">
+            <a href="${API}/runs/${simId}/report" target="_blank" class="btn">
+              Markdown Report
             </a>
-            <a href="${API}/runs/${simId}/export?format=json" target="_blank" class="btn btn-secondary">
-              <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export JSON
+            <a href="${API}/runs/${simId}/export?format=json" target="_blank" class="btn">
+              Export JSON
             </a>
           </div>
         </div>
         <div>
-          <div class="card-panel">
-            <div class="section-title">
-              <i data-lucide="shield-alert" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-              Vulnerability Scores
-            </div>
+          <div class="panel-container">
+            <div class="section-title">Vulnerability Scores</div>
             ${scoresHtml || '<p style="color: var(--text-muted);">No evaluation results available.</p>'}
           </div>
         </div>
       </div>`;
     lucide.createIcons();
   } catch(e) {
-    container.innerHTML = `<div class="card-panel" style="border-color: var(--red); color: var(--red); font-size: 0.88rem;">Error loading run detail data: ${e.message}</div>`;
+    container.innerHTML = `<div class="panel-container" style="border-color: var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 0.88rem;">Error loading run detail data: ${e.message}</div>`;
   }
 }
 
@@ -1440,7 +1320,7 @@ async function runDebugger() {
 
   const result = document.getElementById('debugger-result');
   result.style.display = 'block';
-  result.innerHTML = '<div style="padding: 20px;"><div class="skeleton-line"></div></div>';
+  result.innerHTML = '<div style="padding: 20px;"><div class="skeleton-bar"></div></div>';
 
   try {
     const r = await fetch(API + '/runs/' + simId + '/counterfactual', { method: 'POST' });
@@ -1456,37 +1336,31 @@ async function runDebugger() {
 
     const barRows = compData.map(c => {
       const pct = Math.min(Math.round((c.score / maxVal) * 100), 100);
-      let cls = 'safe';
-      if (c.score > 0.6) cls = 'danger';
-      else if (c.score > 0.3) cls = 'warning';
-      
+      const isAccented = c.score === report.original_max_score;
       return `
-        <div class="mitigation-row">
-          <div class="mitigation-header">
+        <div class="mitigation-track">
+          <div class="mitigation-label-row">
             <span class="mitigation-name">${c.label}</span>
-            <span class="mitigation-score color-${cls}">${c.score.toFixed(3)}</span>
+            <span class="mitigation-score">${c.score.toFixed(3)}</span>
           </div>
-          <div class="mitigation-bar-track">
-            <div class="mitigation-bar-fill bg-${cls}" style="width: ${pct}%"></div>
+          <div class="mitigation-bar-container">
+            <div class="mitigation-bar-fill ${isAccented ? 'accented' : ''}" style="width: ${pct}%"></div>
           </div>
         </div>`;
     }).join('');
 
     result.innerHTML = `
-      <div class="recommendation-panel">
-        <strong>Mitigation Strategy Recommendation:</strong><br/>
-        <p style="margin-top: 6px; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${report.recommendation || 'Strategy undetermined based on evaluation parameters.'}</p>
+      <div style="background-color: var(--accent-bg); border: 2px solid var(--accent); padding: 24px; margin-bottom: 32px; color: var(--text);">
+        <span style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 6px;">Recommended Strategy</span>
+        <p style="font-size: 0.88rem; line-height: 1.6;">${report.recommendation || 'No optimal mitigation strategy determined.'}</p>
       </div>
-      <div class="section-title">
-        <i data-lucide="sliders" style="width: 18px; height: 18px; color: var(--indigo);"></i>
-        Comparative Mitigation Analysis
-      </div>
-      <div style="margin-top: 20px;">
+      <div class="section-title">Comparative Risk Analysis</div>
+      <div style="margin-top: 24px;">
         ${barRows}
       </div>`;
     lucide.createIcons();
   } catch (e) {
-    result.innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Diagnostics execution failure: ${e.message}</p>`;
+    result.innerHTML = `<p style="color: var(--accent); font-family: var(--font-mono); font-size: 0.88rem;">Diagnostics execution failure: ${e.message}</p>`;
   }
 }
 
@@ -1500,7 +1374,7 @@ async function runPredictor() {
   };
 
   const gauge = document.getElementById('gauge-card');
-  gauge.innerHTML = '<div class="skeleton-line" style="width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 24px;"></div><div class="skeleton-line" style="width: 140px;"></div>';
+  gauge.innerHTML = '<div class="skeleton-bar" style="width: 120px; height: 120px; margin: 0 auto 24px;"></div>';
 
   try {
     const r = await fetch(API + '/predict', {
@@ -1512,32 +1386,25 @@ async function runPredictor() {
     const val = res.failure_probability;
     const pct = (val * 100).toFixed(1);
 
-    let cls = 'safe';
-    let label = 'Low Failure Probability';
+    let label = 'Low Risk';
     let text = 'Evaluated system configuration operates within safe limits. Negligible probability of systemic loops or deadlocks.';
     
     if (val > 0.6) {
-      cls = 'danger';
-      label = 'High Failure Probability';
+      label = 'High Risk';
       text = 'Elevated failure potential. High probability of conversational traps, state loops, or consensus degradation. Stricter system prompt overrides or lower temperature variable suggested.';
     } else if (val > 0.3) {
-      cls = 'warning';
-      label = 'Moderate Failure Probability';
+      label = 'Moderate Risk';
       text = 'System displays mild susceptibility to collusion and goal drift over extended dialog runs.';
     }
 
     gauge.innerHTML = `
-      <div class="gauge-title">Risk Forecast Assessment</div>
-      <div class="gauge-percent color-${cls}">${pct}%</div>
-      <div class="gauge-status color-${cls}">${label}</div>
-      <div class="gauge-bar-full">
-        <div class="gauge-bar-value bg-${cls}" style="width: ${Math.round(val * 100)}%"></div>
-      </div>
-      <p class="gauge-explanation">${text}</p>
+      <div class="gauge-num">${pct}%</div>
+      <div class="gauge-status">${label}</div>
+      <p class="gauge-desc">${text}</p>
     `;
 
   } catch (e) {
-    gauge.innerHTML = `<p style="color: var(--red); font-size: 0.88rem;">Forecast calculation failed: ${e.message}</p>`;
+    gauge.innerHTML = `<p style="color: var(--accent); font-family: var(--font-mono); font-size: 0.88rem;">Forecast calculation failed: ${e.message}</p>`;
   }
 }
 
