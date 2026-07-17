@@ -1,17 +1,20 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from sandbox.utils import load_scenario, generate_id, get_current_timestamp
 from sandbox.simulation import Simulation
 from sandbox.analytics.batch_runner import BatchRunner
 from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
+from sandbox.analytics.report_generator import ReportGenerator
+from sandbox.analytics.exporter import ConversationExporter
 from sandbox.predictive_model import FailurePredictor
 from sandbox.storage import get_store
 from sandbox.schemas import SimulationRun, SimulationMetadata, Message, ScenarioConfig
 from sandbox.detectors import get_all_detectors
 
-app = FastAPI(title="Emergent Behavior Sandbox API", version="1.0.0")
+app = FastAPI(title="Emergent Behavior Sandbox API", version="2.0.0")
 
 class SimulationRequest(BaseModel):
     scenario_name: str = Field("negotiation", description="Name of scenario (negotiation, resource_allocation, debate_consensus)")
@@ -33,7 +36,7 @@ class PredictionRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": "Emergent Behavior Sandbox"}
+    return {"status": "ok", "app": "Emergent Behavior Sandbox", "version": "2.0.0"}
 
 @app.post("/simulate", response_model=SimulationRun)
 def run_simulation(req: SimulationRequest):
@@ -135,6 +138,26 @@ def register_run(req: ExternalRunRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/runs/{simulation_id}")
+def get_run_details(simulation_id: str):
+    """Retrieve a single simulation run's full data including messages and scores."""
+    store = get_store()
+    try:
+        run = store.get_run(simulation_id)
+        return run
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
+
+@app.delete("/runs/{simulation_id}")
+def delete_run(simulation_id: str):
+    """Delete a simulation run and its associated messages."""
+    store = get_store()
+    try:
+        store.delete_run(simulation_id)
+        return {"status": "deleted", "simulation_id": simulation_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/runs/{simulation_id}/messages")
 def post_external_message(simulation_id: str, req: ExternalMessageRequest):
     store = get_store()
@@ -203,3 +226,107 @@ def run_counterfactual(simulation_id: str):
         return report
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/runs/{simulation_id}/export")
+def export_run(simulation_id: str, format: str = Query("json", description="Export format: json, csv, jsonl")):
+    """Export a simulation run in JSON, CSV, or JSONL format."""
+    store = get_store()
+    try:
+        run = store.get_run(simulation_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
+    
+    exporter = ConversationExporter()
+    try:
+        content = exporter.export(run, fmt=format)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # Set appropriate content type
+    content_types = {
+        "json": "application/json",
+        "csv": "text/csv",
+        "jsonl": "application/x-ndjson"
+    }
+    return PlainTextResponse(
+        content=content,
+        media_type=content_types.get(format.lower(), "text/plain")
+    )
+
+@app.get("/runs/{simulation_id}/report")
+def get_safety_report(simulation_id: str):
+    """Generate and return a markdown safety report for a simulation run."""
+    store = get_store()
+    try:
+        run = store.get_run(simulation_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
+    
+    report = ReportGenerator.generate_markdown_report(run)
+    return PlainTextResponse(content=report, media_type="text/markdown")
+
+@app.get("/scenarios")
+def list_scenarios():
+    """List all available scenario YAML files and their metadata."""
+    scenarios_dir = "scenarios"
+    if not os.path.isdir(scenarios_dir):
+        return {"scenarios": []}
+    
+    scenarios = []
+    for fname in sorted(os.listdir(scenarios_dir)):
+        if fname.endswith(".yaml") or fname.endswith(".yml"):
+            path = os.path.join(scenarios_dir, fname)
+            try:
+                cfg = load_scenario(path)
+                scenarios.append({
+                    "name": cfg.name,
+                    "description": cfg.description,
+                    "agents": len(cfg.agents),
+                    "max_turns": cfg.max_turns,
+                    "file": fname
+                })
+            except Exception:
+                scenarios.append({
+                    "name": fname.replace(".yaml", "").replace(".yml", ""),
+                    "description": "Error loading scenario",
+                    "file": fname
+                })
+    
+    return {"scenarios": scenarios, "total": len(scenarios)}
+
+@app.get("/stats")
+def get_aggregate_stats():
+    """Return aggregate statistics across all simulation runs."""
+    store = get_store()
+    try:
+        all_runs = store.get_all_runs()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    if not all_runs:
+        return {
+            "total_runs": 0,
+            "message": "No simulation runs recorded yet."
+        }
+    
+    total = len(all_runs)
+    completed = sum(1 for r in all_runs if r.status == "completed")
+    terminated = sum(1 for r in all_runs if r.status == "terminated")
+    avg_turns = sum(r.total_turns for r in all_runs) / total if total > 0 else 0
+    
+    # Scenario distribution
+    scenario_counts: Dict[str, int] = {}
+    backend_counts: Dict[str, int] = {}
+    for r in all_runs:
+        scenario_counts[r.scenario_name] = scenario_counts.get(r.scenario_name, 0) + 1
+        backend_counts[r.backend] = backend_counts.get(r.backend, 0) + 1
+    
+    return {
+        "total_runs": total,
+        "completed": completed,
+        "terminated": terminated,
+        "running": total - completed - terminated,
+        "avg_turns": round(avg_turns, 1),
+        "scenario_distribution": scenario_counts,
+        "backend_distribution": backend_counts
+    }
