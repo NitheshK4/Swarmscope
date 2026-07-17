@@ -1,4 +1,3 @@
-import pytest
 from sandbox.agents import Agent
 from sandbox.backends.dummy import DummyBackend
 from sandbox.schemas import Message
