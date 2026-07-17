@@ -1,5 +1,5 @@
 import copy
-from typing import List, Dict, Any, Tuple
+from typing import Dict, Any
 from sandbox.schemas import SimulationRun, ScenarioConfig
 from sandbox.simulation import Simulation
 from sandbox.storage import get_store
@@ -20,7 +20,6 @@ class CounterfactualReplayEngine:
             scenario = load_scenario(scenario_path)
         except Exception:
             # Fallback basic scenario config if custom scenario
-            from sandbox.schemas import ScenarioConfig
             scenario = ScenarioConfig(
                 name=m.scenario_name,
                 description="Custom Scenario",
