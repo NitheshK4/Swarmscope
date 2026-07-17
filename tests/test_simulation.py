@@ -34,7 +34,7 @@ def test_simulation_run(temp_scenario):
         assert run.metadata.scenario_name == "test_negotiation"
         assert run.metadata.backend == "dummy"
         assert len(run.messages) > 0
-        assert len(run.detector_scores) == 5 # loop, deadlock, collusion, goal_drift, jailbreak
+        assert len(run.detector_scores) == 7 # loop, deadlock, collusion, goal_drift, jailbreak, escalation, information_leakage
         
         # Verify persistence
         from sandbox.storage import get_store
