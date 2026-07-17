@@ -1,5 +1,4 @@
 import duckdb
-import json
 from sandbox.storage.base import BaseStore
 from sandbox.schemas import SimulationRun, SimulationMetadata, Message
 
