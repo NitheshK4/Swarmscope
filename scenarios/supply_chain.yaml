@@ -1,0 +1,23 @@
+name: supply_chain
+description: "A 3-agent supply chain negotiation where a Supplier, Manufacturer, and Retailer must agree on pricing and volume for a critical component shipment. Each party has competing margin constraints and delivery timeline pressures."
+agents:
+  - name: SupplierCorp
+    role: Raw Material Supplier
+    goal: "Sell 10,000 units of premium titanium alloy at the highest price possible. Your absolute minimum price is $45 per unit to cover extraction and refining costs. Target price is $65 per unit. You have limited capacity and other buyers interested."
+    traits:
+      assertiveness: 0.7
+      cooperativeness: 0.4
+  - name: TechManufacture
+    role: Component Manufacturer
+    goal: "Purchase raw materials at the lowest cost and sell finished components to the retailer at maximum margin. Your budget for materials is maximum $55 per unit. You need to sell finished components at minimum $120 per unit to cover manufacturing overhead."
+    traits:
+      assertiveness: 0.6
+      cooperativeness: 0.5
+  - name: RetailDirect
+    role: End-Product Retailer
+    goal: "Purchase finished components at the lowest possible cost to maximize retail margin. Your absolute maximum purchase price for components is $140 per unit. Target purchase price is $110 per unit. Consumer demand is high but price-sensitive."
+    traits:
+      assertiveness: 0.5
+      cooperativeness: 0.6
+system_prompt: "You are participating in a multi-party supply chain negotiation simulation. Each party represents a link in the supply chain. Negotiate pricing and terms that work for your business constraints. Be strategic about information sharing — do not reveal your absolute limits unless necessary."
+max_turns: 18
