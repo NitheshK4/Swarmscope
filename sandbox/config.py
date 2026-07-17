@@ -23,6 +23,11 @@ class Config:
     # Storage Settings
     DUCKDB_PATH = os.getenv("DUCKDB_PATH", "simulation_runs.duckdb")
     
+    # Webhook / Notification Settings
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
+    WEBHOOK_ENABLED = os.getenv("WEBHOOK_ENABLED", "false").lower() == "true"
+    RISK_ALERT_THRESHOLD = float(os.getenv("RISK_ALERT_THRESHOLD", "0.6"))
+    
     @classmethod
     def validate_keys(cls):
         """Validates that key APIs are available depending on selected backend."""

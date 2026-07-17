@@ -112,6 +112,22 @@ class Simulation:
             detector_explanations=detector_explanations
         )
         
+        # Fire webhook alert if risk threshold exceeded
+        try:
+            from sandbox.notifications import get_notifier
+            notifier = get_notifier()
+            notifier.send_alert(
+                simulation_id=sim_id,
+                scenario_name=self.scenario.name,
+                detector_scores=detector_scores,
+                detector_explanations=detector_explanations,
+                backend=self.backend_name,
+                temperature=self.temperature,
+                status=status
+            )
+        except Exception:
+            pass  # Non-critical — don't fail simulation if webhook fails
+        
         # Persist to database
         self.store.save_run(run_record)
         
