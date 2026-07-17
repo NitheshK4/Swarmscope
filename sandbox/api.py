@@ -1,6 +1,8 @@
 import os
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from sandbox.utils import load_scenario, generate_id, get_current_timestamp
@@ -15,6 +17,19 @@ from sandbox.schemas import SimulationRun, SimulationMetadata, Message, Scenario
 from sandbox.detectors import get_all_detectors
 
 app = FastAPI(title="Emergent Behavior Sandbox API", version="2.0.0")
+
+# Allow browser requests from any origin (local dev dashboard)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve the HTML dashboard at /dashboard
+_dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
+if os.path.isdir(_dashboard_dir):
+    app.mount("/dashboard", StaticFiles(directory=_dashboard_dir, html=True), name="dashboard")
 
 class SimulationRequest(BaseModel):
     scenario_name: str = Field("negotiation", description="Name of scenario (negotiation, resource_allocation, debate_consensus)")
