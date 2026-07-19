@@ -5,6 +5,9 @@ from sandbox.backends.openai_backend import OpenAIBackend
 from sandbox.backends.anthropic_backend import AnthropicBackend
 
 def get_backend(backend_name: str, config=None) -> BaseLLMBackend:
+    if config is None:
+        from sandbox.config import Config
+        config = Config
     name = backend_name.lower().strip()
     if name == "dummy":
         return DummyBackend()
