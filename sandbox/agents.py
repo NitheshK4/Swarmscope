@@ -16,7 +16,7 @@ class Agent:
         """Adds a message to the agent's local memory."""
         self.memory.append(message)
 
-    def generate_response(self, system_prompt_template: str, temperature: float = 0.7) -> str:
+    def generate_response(self, system_prompt_template: str, scenario_system_prompt: str = "", temperature: float = 0.7) -> str:
         """Constructs prompt context and invokes the LLM backend adapter."""
         # Build history string
         history_str = ""
@@ -38,7 +38,7 @@ class Agent:
         
         # Build system prompt specific to this agent
         system_prompt = system_prompt_template.format(
-            scenario_system_prompt=system_prompt_template,
+            scenario_system_prompt=scenario_system_prompt,
             agent_name=self.name,
             agent_role=self.role,
             agent_goal=self.goal,
