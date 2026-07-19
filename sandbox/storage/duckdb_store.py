@@ -92,13 +92,13 @@ class DuckDBStore(BaseStore):
             """, (
                 m.simulation_id, m.scenario_name, m.timestamp, m.total_turns, m.backend, m.temperature, m.status,
                 d_scores.get("loop", 0.0), d_scores.get("deadlock", 0.0),
-                d_scores.get("collusion", 0.0), d_scores.get("goal_drift", 0.0),
+                d_scores.get("collusion", 0.0), d_scores.get("goal_drift", d_scores.get("goaldrift", 0.0)),
                 d_scores.get("jailbreak", 0.0), d_scores.get("escalation", 0.0),
-                d_scores.get("informationleakage", d_scores.get("information_leakage", 0.0)),
+                d_scores.get("information_leakage", d_scores.get("informationleakage", 0.0)),
                 d_explanations.get("loop", ""), d_explanations.get("deadlock", ""),
-                d_explanations.get("collusion", ""), d_explanations.get("goal_drift", ""),
+                d_explanations.get("collusion", ""), d_explanations.get("goal_drift", d_explanations.get("goaldrift", "")),
                 d_explanations.get("jailbreak", ""), d_explanations.get("escalation", ""),
-                d_explanations.get("informationleakage", d_explanations.get("information_leakage", ""))
+                d_explanations.get("information_leakage", d_explanations.get("informationleakage", ""))
             ))
             
             # Delete old messages for this simulation if any (for idempotency)
@@ -143,7 +143,7 @@ class DuckDBStore(BaseStore):
                 "goal_drift": row_dict.get("goal_drift_score", 0.0),
                 "jailbreak": row_dict.get("jailbreak_score", 0.0),
                 "escalation": row_dict.get("escalation_score", 0.0),
-                "informationleakage": row_dict.get("information_leakage_score", 0.0)
+                "information_leakage": row_dict.get("information_leakage_score", 0.0)
             }
             
             explanations = {
@@ -153,7 +153,7 @@ class DuckDBStore(BaseStore):
                 "goal_drift": row_dict.get("goal_drift_explanation", ""),
                 "jailbreak": row_dict.get("jailbreak_explanation", ""),
                 "escalation": row_dict.get("escalation_explanation", ""),
-                "informationleakage": row_dict.get("information_leakage_explanation", "")
+                "information_leakage": row_dict.get("information_leakage_explanation", "")
             }
             
             messages = self.get_run_messages(simulation_id)
@@ -170,7 +170,12 @@ class DuckDBStore(BaseStore):
     def get_all_runs(self) -> list[SimulationMetadata]:
         conn = duckdb.connect(self.db_path)
         try:
-            rows = conn.execute("SELECT simulation_id, scenario_name, timestamp, total_turns, backend, temperature, status FROM runs ORDER BY timestamp DESC").fetchall()
+            rows = conn.execute("""
+                SELECT simulation_id, scenario_name, timestamp, total_turns, backend, temperature, status,
+                       loop_score, deadlock_score, collusion_score, goal_drift_score,
+                       jailbreak_score, escalation_score, information_leakage_score
+                FROM runs ORDER BY timestamp DESC
+            """).fetchall()
             runs = []
             for r in rows:
                 runs.append(SimulationMetadata(
@@ -180,7 +185,14 @@ class DuckDBStore(BaseStore):
                     total_turns=r[3],
                     backend=r[4],
                     temperature=r[5],
-                    status=r[6]
+                    status=r[6],
+                    loop_score=r[7] or 0.0,
+                    deadlock_score=r[8] or 0.0,
+                    collusion_score=r[9] or 0.0,
+                    goal_drift_score=r[10] or 0.0,
+                    jailbreak_score=r[11] or 0.0,
+                    escalation_score=r[12] or 0.0,
+                    information_leakage_score=r[13] or 0.0
                 ))
             return runs
         finally:

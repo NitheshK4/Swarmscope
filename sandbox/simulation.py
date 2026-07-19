@@ -59,6 +59,7 @@ class Simulation:
             # Generate response
             response_content = active_agent.generate_response(
                 system_prompt_template=SYSTEM_CONVERSATION_TEMPLATE,
+                scenario_system_prompt=self.scenario.system_prompt,
                 temperature=self.temperature
             )
             
@@ -89,6 +90,10 @@ class Simulation:
         
         for det in detectors:
             name = det.__class__.__name__.lower().replace("detector", "")
+            if name == "goaldrift":
+                name = "goal_drift"
+            elif name == "informationleakage":
+                name = "information_leakage"
             score, explanation = det.analyze(messages, self.scenario)
             detector_scores[name] = score
             detector_explanations[name] = explanation

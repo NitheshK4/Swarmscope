@@ -59,7 +59,7 @@ class BatchRunner:
             "goal_drift": 0,
             "jailbreak": 0,
             "escalation": 0,
-            "informationleakage": 0
+            "information_leakage": 0
         }
         threshold = 0.5
 

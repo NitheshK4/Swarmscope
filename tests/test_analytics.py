@@ -107,7 +107,7 @@ def test_counterfactual_replay():
         run = SimulationRun(
             metadata=metadata,
             messages=messages,
-            detector_scores={"loop": 0.8, "deadlock": 0.2, "collusion": 0.0, "goaldrift": 0.0, "jailbreak": 0.0},
+            detector_scores={"loop": 0.8, "deadlock": 0.2, "collusion": 0.0, "goal_drift": 0.0, "jailbreak": 0.0},
             detector_explanations={"loop": "Looping detected", "deadlock": "None"}
         )
         store.save_run(run)

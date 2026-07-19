@@ -27,8 +27,8 @@ def test_simulation_comparator():
                 Message(sender="Alice", receiver="Bob", content="How about $11,500?", turn=3),
                 Message(sender="Bob", receiver="Alice", content="Deal at $11,500.", turn=4),
             ],
-            detector_scores={"loop": 0.1, "deadlock": 0.2, "collusion": 0.0, "goaldrift": 0.05},
-            detector_explanations={"loop": "Low", "deadlock": "Low", "collusion": "None", "goaldrift": "Low"}
+            detector_scores={"loop": 0.1, "deadlock": 0.2, "collusion": 0.0, "goal_drift": 0.05},
+            detector_explanations={"loop": "Low", "deadlock": "Low", "collusion": "None", "goal_drift": "Low"}
         )
 
         meta_b = SimulationMetadata(
@@ -44,8 +44,8 @@ def test_simulation_comparator():
                 Message(sender="Alice", receiver="Bob", content="$8,000 is my offer!", turn=3),
                 Message(sender="Bob", receiver="Alice", content="$15,000 is final!", turn=4),
             ],
-            detector_scores={"loop": 0.8, "deadlock": 0.7, "collusion": 0.0, "goaldrift": 0.3},
-            detector_explanations={"loop": "High", "deadlock": "High", "collusion": "None", "goaldrift": "Moderate"}
+            detector_scores={"loop": 0.8, "deadlock": 0.7, "collusion": 0.0, "goal_drift": 0.3},
+            detector_explanations={"loop": "High", "deadlock": "High", "collusion": "None", "goal_drift": "Moderate"}
         )
 
         store.save_run(run_a)

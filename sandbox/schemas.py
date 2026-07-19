@@ -30,6 +30,13 @@ class SimulationMetadata(BaseModel):
     backend: str
     temperature: float
     status: str
+    loop_score: Optional[float] = 0.0
+    deadlock_score: Optional[float] = 0.0
+    collusion_score: Optional[float] = 0.0
+    goal_drift_score: Optional[float] = 0.0
+    jailbreak_score: Optional[float] = 0.0
+    escalation_score: Optional[float] = 0.0
+    information_leakage_score: Optional[float] = 0.0
 
 class SimulationRun(BaseModel):
     metadata: SimulationMetadata
