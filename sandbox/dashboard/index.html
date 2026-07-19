@@ -1086,10 +1086,13 @@ function renderFailureChart(runs) {
   let loopCount = 0, deadlockCount = 0, collusionCount = 0, driftCount = 0, jailbreakCount = 0, escCount = 0, leakageCount = 0;
   
   runs.forEach(r => {
-    const tempFactor = parseFloat(r.temperature || 0.7);
-    if (tempFactor > 0.9) { loopCount++; driftCount++; }
-    if (r.total_turns > 20) { deadlockCount++; collusionCount++; }
-    if (r.status === 'terminated') { escCount++; }
+    if (parseFloat(r.loop_score || 0.0) > 0.5) loopCount++;
+    if (parseFloat(r.deadlock_score || 0.0) > 0.5) deadlockCount++;
+    if (parseFloat(r.collusion_score || 0.0) > 0.5) collusionCount++;
+    if (parseFloat(r.goal_drift_score || 0.0) > 0.5) driftCount++;
+    if (parseFloat(r.jailbreak_score || 0.0) > 0.5) jailbreakCount++;
+    if (parseFloat(r.escalation_score || 0.0) > 0.5) escCount++;
+    if (parseFloat(r.information_leakage_score || 0.0) > 0.5) leakageCount++;
   });
   
   const total = Math.max(runs.length, 1);
@@ -1408,7 +1411,7 @@ async function runDebugger() {
 
     result.innerHTML = `
       <div class="mit-alert">
-        <strong>Mitigation Strategy Strategy Recommendation:</strong>
+        <strong>Mitigation Strategy Recommendation:</strong>
         <p style="margin-top: 6px; font-size: 0.86rem; color: var(--text-secondary);">${report.recommendation || 'No optimal mitigation strategy determined.'}</p>
       </div>
       <div class="card-title" style="margin-bottom: 16px;">Comparative Risk Analysis</div>
