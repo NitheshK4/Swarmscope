@@ -243,8 +243,8 @@ def run_counterfactual(simulation_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/runs/{simulation_id}/export")
-def export_run(simulation_id: str, format: str = Query("json", description="Export format: json, csv, jsonl")):
-    """Export a simulation run in JSON, CSV, or JSONL format."""
+def export_run(simulation_id: str, format: str = Query("json", description="Export format: json, csv, jsonl, yaml, markdown")):
+    """Export a simulation run in JSON, CSV, JSONL, YAML, or Markdown format."""
     store = get_store()
     try:
         run = store.get_run(simulation_id)
@@ -261,7 +261,11 @@ def export_run(simulation_id: str, format: str = Query("json", description="Expo
     content_types = {
         "json": "application/json",
         "csv": "text/csv",
-        "jsonl": "application/x-ndjson"
+        "jsonl": "application/x-ndjson",
+        "yaml": "text/yaml",
+        "yml": "text/yaml",
+        "markdown": "text/markdown",
+        "md": "text/markdown"
     }
     return PlainTextResponse(
         content=content,

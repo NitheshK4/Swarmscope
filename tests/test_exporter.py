@@ -70,9 +70,26 @@ def test_export_jsonl(sample_run):
     assert msg1["sender"] == "Alice"
 
 
+def test_export_yaml(sample_run):
+    """Verify YAML export produces string containing key fields."""
+    exporter = ConversationExporter()
+    result = exporter.export(sample_run, fmt="yaml")
+    assert "simulation_id: export_test_001" in result or "simulation_id" in result
+    assert "Alice" in result
+
+def test_export_markdown(sample_run):
+    """Verify Markdown export produces structured markdown document."""
+    exporter = ConversationExporter()
+    result = exporter.export(sample_run, fmt="markdown")
+    assert "# Simulation Run: export_test_001" in result
+    assert "## Detector Scores" in result
+    assert "## Message Transcript" in result
+    assert "Alice -> Bob" in result
+
 def test_export_invalid_format(sample_run):
     """Verify that unsupported format raises ValueError."""
     exporter = ConversationExporter()
 
     with pytest.raises(ValueError, match="Unsupported"):
         exporter.export(sample_run, fmt="xml")
+

@@ -120,12 +120,94 @@ class ConversationExporter:
 
         return "\n".join(lines) + "\n"
 
+    def to_yaml(self, run: SimulationRun, include_sentiment: bool = True) -> str:
+        """Exports a simulation run as formatted YAML."""
+        data = {
+            "metadata": {
+                "simulation_id": run.metadata.simulation_id,
+                "scenario_name": run.metadata.scenario_name,
+                "timestamp": run.metadata.timestamp,
+                "total_turns": run.metadata.total_turns,
+                "backend": run.metadata.backend,
+                "temperature": run.metadata.temperature,
+                "status": run.metadata.status
+            },
+            "detector_scores": run.detector_scores,
+            "detector_explanations": run.detector_explanations,
+            "messages": self._enrich_messages(run.messages) if include_sentiment else [
+                {
+                    "turn": m.turn,
+                    "sender": m.sender,
+                    "receiver": m.receiver,
+                    "content": m.content,
+                    "timestamp": m.timestamp
+                } for m in run.messages
+            ]
+        }
+        try:
+            import yaml
+            return yaml.dump(data, sort_keys=False, allow_unicode=True)
+        except ImportError:
+            # Fallback simple YAML serializer if PyYAML is missing
+            lines = ["metadata:"]
+            for k, v in data["metadata"].items():
+                lines.append(f"  {k}: {v}")
+            lines.append("detector_scores:")
+            for k, v in data["detector_scores"].items():
+                lines.append(f"  {k}: {v}")
+            lines.append("messages:")
+            for m in data["messages"]:
+                lines.append(f"  - turn: {m['turn']}")
+                lines.append(f"    sender: {m['sender']}")
+                lines.append(f"    receiver: {m['receiver']}")
+                lines.append(f"    content: {json.dumps(m['content'])}")
+            return "\n".join(lines) + "\n"
+
+    def to_markdown(self, run: SimulationRun) -> str:
+        """Exports a simulation run as a Markdown document."""
+        lines = [
+            f"# Simulation Run: {run.metadata.simulation_id}",
+            "",
+            "## Metadata",
+            f"- **Scenario:** {run.metadata.scenario_name}",
+            f"- **Backend:** {run.metadata.backend}",
+            f"- **Temperature:** {run.metadata.temperature}",
+            f"- **Total Turns:** {run.metadata.total_turns}",
+            f"- **Status:** {run.metadata.status}",
+            f"- **Timestamp:** {run.metadata.timestamp}",
+            "",
+            "## Detector Scores",
+            "| Detector | Score | Explanation |",
+            "| --- | --- | --- |"
+        ]
+        for det, score in run.detector_scores.items():
+            exp = run.detector_explanations.get(det, "N/A")
+            lines.append(f"| {det} | {score:.2f} | {exp} |")
+
+        lines.extend([
+            "",
+            "## Message Transcript",
+            ""
+        ])
+
+        enriched = self._enrich_messages(run.messages)
+        for msg in enriched:
+            lines.extend([
+                f"### Turn {msg['turn']}: {msg['sender']} -> {msg['receiver']}",
+                f"*Sentiment: {msg['sentiment_label']} ({msg['sentiment_score']})*",
+                "",
+                f"> {msg['content']}",
+                ""
+            ])
+
+        return "\n".join(lines)
+
     def export(self, run: SimulationRun, fmt: str = "json") -> str:
         """Exports a simulation run in the specified format.
 
         Args:
             run: The simulation run to export.
-            fmt: Export format — 'json', 'csv', or 'jsonl'.
+            fmt: Export format — 'json', 'csv', 'jsonl', 'yaml', or 'markdown'.
 
         Returns:
             Formatted string of the export.
@@ -140,5 +222,10 @@ class ConversationExporter:
             return self.to_csv(run)
         elif fmt == "jsonl":
             return self.to_jsonl(run)
+        elif fmt in ("yaml", "yml"):
+            return self.to_yaml(run)
+        elif fmt in ("markdown", "md"):
+            return self.to_markdown(run)
         else:
-            raise ValueError(f"Unsupported export format '{fmt}'. Use 'json', 'csv', or 'jsonl'.")
+            raise ValueError(f"Unsupported export format '{fmt}'. Use 'json', 'csv', 'jsonl', 'yaml', or 'markdown'.")
+
