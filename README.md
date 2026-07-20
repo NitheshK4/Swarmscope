@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" alt="License"/>
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"/>
-  <img src="https://img.shields.io/badge/SDKs-TS%20%7C%20Go%20%7C%20Rust-EAB308?style=flat-square" alt="SDKs"/>
+  <img src="https://img.shields.io/badge/SDKs-Python%20%7C%20TS%20%7C%20Go%20%7C%20Rust-EAB308?style=flat-square" alt="SDKs"/>
 </p>
 
 <br/>
@@ -217,7 +217,7 @@ The FastAPI server exposes these endpoints for programmatic access and SDK integ
 | `DELETE` | `/runs/{id}` | Delete a simulation run |
 | `POST` | `/runs/{id}/messages` | Stream messages into a run |
 | `POST` | `/runs/{id}/counterfactual` | Replay with mitigations |
-| `GET` | `/runs/{id}/export` | Export run as JSON, CSV, or JSONL |
+| `GET` | `/runs/{id}/export` | Export run as JSON, CSV, JSONL, YAML, or Markdown |
 | `GET` | `/runs/{id}/report` | Get safety report (Markdown) |
 | `GET` | `/scenarios` | List available scenarios |
 | `GET` | `/stats` | Get aggregate statistics |
@@ -359,6 +359,7 @@ swarmscope/
 │   └── dashboard/              #    Streamlit frontend
 │
 ├── sdk/                        # 🔌 Polyglot client SDKs
+│   ├── python/                 #    Python
 │   ├── ts/                     #    TypeScript
 │   ├── js/                     #    Node.js
 │   ├── go/                     #    Go
@@ -387,6 +388,9 @@ cp .env.example .env
 | `ANTHROPIC_API_KEY` | — | Anthropic API key |
 | `ANTHROPIC_MODEL` | `claude-3-5-sonnet-20240620` | Anthropic model |
 | `DUCKDB_PATH` | `simulation_runs.duckdb` | Database file path |
+| `WEBHOOK_URL` | `""` | Target HTTP POST URL for risk alert webhooks (Slack/Discord/Custom) |
+| `WEBHOOK_ENABLED` | `false` | Enable or disable automated webhook risk alerts |
+| `RISK_ALERT_THRESHOLD` | `0.6` | Minimum score threshold to trigger webhook alerts |
 
 ---
 
