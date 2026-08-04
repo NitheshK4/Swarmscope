@@ -31,6 +31,11 @@ _dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
 if os.path.isdir(_dashboard_dir):
     app.mount("/dashboard", StaticFiles(directory=_dashboard_dir, html=True), name="dashboard")
 
+class HealthResponse(BaseModel):
+    status: str = "ok"
+    app: str = "Emergent Behavior Sandbox"
+    version: str = "2.0.0"
+
 class SimulationRequest(BaseModel):
     scenario_name: str = Field("negotiation", description="Name of scenario (negotiation, resource_allocation, debate_consensus)")
     backend: str = Field("dummy", description="LLM backend (dummy, ollama, openai, anthropic)")
@@ -49,9 +54,9 @@ class PredictionRequest(BaseModel):
     temperature: float
     turns: int
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 def health():
-    return {"status": "ok", "app": "Emergent Behavior Sandbox", "version": "2.0.0"}
+    return HealthResponse(status="ok", app="Emergent Behavior Sandbox", version="2.0.0")
 
 @app.post("/simulate", response_model=SimulationRun)
 def run_simulation(req: SimulationRequest):
