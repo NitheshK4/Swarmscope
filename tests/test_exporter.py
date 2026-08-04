@@ -93,3 +93,11 @@ def test_export_invalid_format(sample_run):
     with pytest.raises(ValueError, match="Unsupported"):
         exporter.export(sample_run, fmt="xml")
 
+def test_export_json_redacts_sensitive_metadata():
+    exporter = ConversationExporter()
+    meta_dict = {"scenario_name": "test", "api_key": "secret123", "normal_param": "val"}
+    sanitized = exporter._sanitize_meta(meta_dict)
+    assert sanitized["api_key"] == "[REDACTED]"
+    assert sanitized["normal_param"] == "val"
+
+

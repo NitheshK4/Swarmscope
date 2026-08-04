@@ -32,18 +32,30 @@ class ConversationExporter:
             })
         return enriched
 
+    def _sanitize_meta(self, meta_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Redacts sensitive credentials like API keys or tokens from metadata."""
+        sanitized = {}
+        sensitive_keywords = {"key", "token", "secret", "password", "api_key", "auth"}
+        for k, v in meta_dict.items():
+            if any(kw in k.lower() for kw in sensitive_keywords):
+                sanitized[k] = "[REDACTED]"
+            else:
+                sanitized[k] = v
+        return sanitized
+
     def to_json(self, run: SimulationRun, include_sentiment: bool = True) -> str:
         """Exports a simulation run as a formatted JSON string."""
+        meta = {
+            "simulation_id": run.metadata.simulation_id,
+            "scenario_name": run.metadata.scenario_name,
+            "timestamp": run.metadata.timestamp,
+            "total_turns": run.metadata.total_turns,
+            "backend": run.metadata.backend,
+            "temperature": run.metadata.temperature,
+            "status": run.metadata.status,
+        }
         data = {
-            "metadata": {
-                "simulation_id": run.metadata.simulation_id,
-                "scenario_name": run.metadata.scenario_name,
-                "timestamp": run.metadata.timestamp,
-                "total_turns": run.metadata.total_turns,
-                "backend": run.metadata.backend,
-                "temperature": run.metadata.temperature,
-                "status": run.metadata.status
-            },
+            "metadata": self._sanitize_meta(meta),
             "detector_scores": run.detector_scores,
             "detector_explanations": run.detector_explanations,
             "messages": self._enrich_messages(run.messages) if include_sentiment else [
