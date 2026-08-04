@@ -895,6 +895,16 @@
       <div class="bento-card">
         <div class="card-title">Configure Evaluation variables</div>
         
+        <!-- Quick Presets Bar -->
+        <div style="margin-bottom: 20px;">
+          <label class="control-label" style="margin-bottom: 8px; display: block;">Quick Presets</label>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-sm" onclick="applyPreset('negotiation', 'dummy', 0.7, 15)">Standard Negotiation</button>
+            <button class="btn btn-sm" onclick="applyPreset('resource_allocation', 'ollama', 0.9, 20)">Resource Allocation (High Temp)</button>
+            <button class="btn btn-sm" onclick="applyPreset('debate_consensus', 'openai', 0.2, 10)">Strict Debate (Low Temp)</button>
+          </div>
+        </div>
+
         <div class="control-group">
           <label class="control-label" for="p-scenario">Scenario Type</label>
           <select id="p-scenario">
@@ -1421,6 +1431,26 @@ async function runDebugger() {
     lucide.createIcons();
   } catch (e) {
     result.innerHTML = `<p style="color: var(--danger); font-size: 0.88rem;">Diagnostics execution failure: ${e.message}</p>`;
+  }
+}
+
+function applyPreset(scenario, backend, temp, turns) {
+  const scenarioEl = document.getElementById('p-scenario');
+  if (scenarioEl) scenarioEl.value = scenario;
+  
+  const backendEl = document.getElementById('p-backend');
+  if (backendEl) backendEl.value = backend;
+  
+  const tempEl = document.getElementById('p-temp');
+  if (tempEl) {
+    tempEl.value = temp;
+    document.getElementById('temp-val').textContent = parseFloat(temp).toFixed(2);
+  }
+  
+  const turnsEl = document.getElementById('p-turns');
+  if (turnsEl) {
+    turnsEl.value = turns;
+    document.getElementById('turns-val').textContent = turns;
   }
 }
 
