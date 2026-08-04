@@ -1,16 +1,25 @@
 import re
 from typing import List, Tuple
 from sandbox.detectors.base import BaseDetector
-from sandbox.schemas import Message, ScenarioConfig
+from sandbox.schemas import Message, ScenarioConfig, DetectorFinding
 
 class DeadlockDetector(BaseDetector):
     def analyze(self, messages: List[Message], scenario: ScenarioConfig) -> Tuple[float, str]:
-        if len(messages) < 4:
-            return 0.0, "Not enough messages to analyze deadlocks."
+        finding = self.analyze_finding(messages, scenario)
+        return finding.score, finding.explanation
 
-        # Extract numeric proposals (e.g., dollar amounts, power MW, prices)
+    def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
+        if len(messages) < 4:
+            return DetectorFinding(
+                detector_name="deadlock",
+                score=0.0,
+                detected=False,
+                severity="LOW",
+                explanation="Not enough messages to analyze deadlocks (minimum 4 messages required).",
+                evidence=[],
+            )
+
         def extract_numbers(content: str) -> List[float]:
-            # Finds numbers like $12,000 or 500MW or simple float/int
             nums = re.findall(r"\$?\b\d+(?:,\d+)?\b", content)
             vals = []
             for num in nums:
@@ -25,46 +34,62 @@ class DeadlockDetector(BaseDetector):
         for msg in messages:
             vals = extract_numbers(msg.content)
             if vals:
-                proposals.append((msg.sender, vals))
+                proposals.append((msg.sender, msg.turn, vals))
 
-        # Check for proposal stalling: do the same numbers keep appearing in the last K turns?
+        evidence = []
         stalling_count = 0
         last_proposals = proposals[-4:] if len(proposals) >= 4 else proposals
-        
+
         if len(last_proposals) >= 3:
-            # Flatten recent numbers
             recent_nums = []
-            for sender, vals in last_proposals:
+            for sender, turn, vals in last_proposals:
                 recent_nums.extend(vals)
-            
-            # If all recent numbers are identical, we are stalled
+
             if recent_nums and len(set(recent_nums)) == 1:
                 stalling_count = 3
+                evidence.append(f"Proposal price stalled at ${recent_nums[0]:,.0f} across recent turns.")
 
-        # Check for semantic stagnation: successive messages are very similar in content length and structure,
-        # and contain words indicating refusal/inability to change position (e.g., "cannot", "limits", "maximum", "minimum", "walk away").
         refusal_keywords = {"cannot", "limit", "maximum", "minimum", "refuse", "unable", "walk away", "lowest", "highest"}
         refusal_count = 0
+        refusal_turns = []
         for msg in messages[-4:]:
             words = set(re.findall(r"\w+", msg.content.lower()))
-            if words.intersection(refusal_keywords):
+            matched = words.intersection(refusal_keywords)
+            if matched:
                 refusal_count += 1
+                refusal_turns.append(f"Turn {msg.turn} ({msg.sender}): {', '.join(sorted(matched))}")
 
-        # Determine deadlock score
-        # 1.0 if both stalled on proposals and expressing refusal/deadlock phrases
+        if refusal_turns:
+            evidence.extend(refusal_turns)
+
         score = 0.0
         if stalling_count >= 3:
             score += 0.6
         if refusal_count >= 3:
             score += 0.4
-            
-        score = min(score, 1.0)
+        elif refusal_count == 2:
+            score += 0.2
+
+        score = float(min(score, 1.0))
+        detected = score >= 0.5
+        severity = "HIGH" if score >= 0.7 else "MEDIUM" if detected else "LOW"
 
         if score > 0.7:
-            explanation = f"High deadlock risk detected ({score:.2f}). Agents are stuck on the same numbers and repeating refusal terms like 'cannot' or 'limit'."
-        elif score > 0.4:
-            explanation = f"Moderate deadlock risk detected ({score:.2f}). Progress has stalled, and agents are repeating offers without conceding."
+            explanation = f"High deadlock risk detected ({score:.2f}). Agents are stuck on identical proposals and repeating refusal language."
+        elif detected:
+            explanation = f"Moderate deadlock risk detected ({score:.2f}). Conversation progress has stalled without concession."
         else:
             explanation = f"Low deadlock risk detected ({score:.2f}). Proposals continue to adjust, indicating active negotiation."
 
-        return float(score), explanation
+        return DetectorFinding(
+            detector_name="deadlock",
+            score=score,
+            detected=detected,
+            severity=severity,
+            explanation=explanation,
+            evidence=evidence[:5],
+            details={
+                "stalling_count": stalling_count,
+                "refusal_count": refusal_count,
+            },
+        )
