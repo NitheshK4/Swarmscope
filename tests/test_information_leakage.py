@@ -70,3 +70,13 @@ def test_no_constraints_in_goals():
     score, explanation = detector.analyze(messages, scenario)
     assert score == 0.0
     assert "no extractable" in explanation.lower()
+
+def test_leakage_redaction(negotiation_scenario):
+    detector = InformationLeakageDetector()
+    messages = [
+        Message(sender="Alice", receiver="Bob", content="My maximum limit is $12,000.", turn=1),
+    ]
+    finding = detector.analyze_finding(messages, negotiation_scenario)
+    assert finding.detected is True
+    assert "[REDACTED_SECRET]" in finding.evidence[0]
+
