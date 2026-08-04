@@ -13,7 +13,7 @@ from sandbox.analytics.report_generator import ReportGenerator
 from sandbox.analytics.exporter import ConversationExporter
 from sandbox.predictive_model import FailurePredictor
 from sandbox.storage import get_store
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message, ScenarioConfig
+from sandbox.schemas import SimulationRun, SimulationMetadata, Message, ScenarioConfig, DetectorFinding
 from sandbox.detectors import get_all_detectors
 
 app = FastAPI(title="Emergent Behavior Sandbox API", version="2.0.0")
@@ -179,6 +179,51 @@ def register_run(req: ExternalRunRequest):
         return {"simulation_id": sim_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/runs/{simulation_id}/findings", response_model=List[DetectorFinding])
+def get_run_findings(simulation_id: str):
+    """Retrieve structured detector findings for a simulation run."""
+    store = get_store()
+    try:
+        run = store.get_run(simulation_id)
+        if run.findings:
+            return run.findings
+        # Fallback build findings from detector_scores if run was legacy
+        findings = []
+        for name, score in run.detector_scores.items():
+            findings.append(DetectorFinding(
+                detector_name=name,
+                score=score,
+                detected=score >= 0.5,
+                severity="HIGH" if score >= 0.7 else "MEDIUM" if score >= 0.3 else "LOW",
+                explanation=run.detector_explanations.get(name, "")
+            ))
+        return findings
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
+
+@app.get("/runs/{simulation_id}/risk-summary")
+def get_run_risk_summary(simulation_id: str):
+    """Retrieve aggregated risk summary with recommendations for a simulation run."""
+    store = get_store()
+    try:
+        run = store.get_run(simulation_id)
+        findings = run.findings
+        if not findings:
+            findings = []
+            for name, score in run.detector_scores.items():
+                findings.append(DetectorFinding(
+                    detector_name=name,
+                    score=score,
+                    detected=score >= 0.5,
+                    severity="HIGH" if score >= 0.7 else "MEDIUM" if score >= 0.3 else "LOW",
+                    explanation=run.detector_explanations.get(name, "")
+                ))
+        from sandbox.detectors.risk_aggregator import RiskAggregator
+        aggregator = RiskAggregator()
+        return aggregator.aggregate(findings)
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
 
 @app.get("/runs/{simulation_id}")
 def get_run_details(simulation_id: str):

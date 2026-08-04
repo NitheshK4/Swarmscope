@@ -112,6 +112,14 @@ def test_runs_lifecycle_endpoints():
     assert get_res.status_code == 200
     assert get_res.json()["metadata"]["simulation_id"] == sim_id
 
+    # 3b. Get run findings and risk summary
+    find_res = client.get(f"/runs/{sim_id}/findings")
+    assert find_res.status_code == 200
+
+    risk_res = client.get(f"/runs/{sim_id}/risk-summary")
+    assert risk_res.status_code == 200
+    assert "overall_severity" in risk_res.json()
+
     # 4. Export run
     export_res = client.get(f"/runs/{sim_id}/export?format=json")
     assert export_res.status_code == 200
