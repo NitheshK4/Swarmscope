@@ -2,9 +2,16 @@ from openai import OpenAI
 from sandbox.backends.base import BaseLLMBackend
 
 class OpenAIBackend(BaseLLMBackend):
+    backend_name = "openai"
+
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
-        self.client = OpenAI(api_key=api_key)
+        self.api_key = api_key or "dummy-key"
         self.model = model
+        try:
+            self.client = OpenAI(api_key=self.api_key)
+        except Exception:
+            self.client = None
+
 
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         messages = [{"role": "system", "content": system_prompt}]

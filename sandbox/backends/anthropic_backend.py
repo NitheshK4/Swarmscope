@@ -2,9 +2,16 @@ import anthropic
 from sandbox.backends.base import BaseLLMBackend
 
 class AnthropicBackend(BaseLLMBackend):
+    backend_name = "anthropic"
+
     def __init__(self, api_key: str, model: str = "claude-3-5-sonnet-20240620"):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.api_key = api_key or "dummy-key"
         self.model = model
+        try:
+            self.client = anthropic.Anthropic(api_key=self.api_key)
+        except Exception:
+            self.client = None
+
 
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         # Anthropic takes system prompt as a top-level parameter, not inside the messages array
