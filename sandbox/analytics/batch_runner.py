@@ -1,37 +1,27 @@
 import random
 import copy
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sandbox.schemas import SimulationRun
 from sandbox.simulation import Simulation
 from sandbox.utils import load_scenario
 
 class BatchRunner:
-    def __init__(self, scenario_path: str, backend_name: str = "dummy", base_temperature: float = 0.7, db_path: str = None):
+    def __init__(self, scenario_path: str, backend_name: str = "dummy", base_temperature: float = 0.7, db_path: str = None, max_concurrency: int = 5):
         self.scenario_path = scenario_path
         self.backend_name = backend_name
         self.base_temperature = base_temperature
         self.db_path = db_path
+        self.max_concurrency = max_concurrency
         self.original_scenario = load_scenario(scenario_path)
 
-    def run_batch(self, count: int = 5) -> Dict[str, Any]:
-        """Runs the simulation N times with variations and aggregates results."""
-        runs: List[SimulationRun] = []
-        
-        for i in range(count):
-            # 1. Temperature Jitter
-            # Add or subtract up to 0.15 from base temperature, clamped to [0.1, 1.2]
+    def _execute_single_run(self, index: int) -> Optional[SimulationRun]:
+        """Executes a single simulation run with failure isolation."""
+        try:
             jitter = random.uniform(-0.15, 0.15)
             run_temp = max(0.1, min(1.2, self.base_temperature + jitter))
-            
-            # Create a deep copy of the scenario config
             scenario_copy = copy.deepcopy(self.original_scenario)
-            
-            # 2. Randomize agent ordering (shuffle list)
-            # Shuffle agent order to test turn-taking vulnerabilities
             random.shuffle(scenario_copy.agents)
-            
-            # 3. Prompt phrasing variations
-            # Slightly adjust system prompt phrasing to simulate alternate formulations
             phrasings = [
                 " Remember to act logically.",
                 " Focus closely on your limits.",
@@ -40,18 +30,45 @@ class BatchRunner:
             ]
             scenario_copy.system_prompt += random.choice(phrasings)
 
-            # Initialize and run simulation
             sim = Simulation(
                 scenario=scenario_copy,
                 backend_name=self.backend_name,
                 temperature=run_temp,
-                db_path=self.db_path
+                db_path=self.db_path,
+                random_seed=1000 + index,
             )
-            run_record = sim.run()
-            runs.append(run_record)
+            return sim.run()
+        except Exception as exc:
+            # Failure isolated — log error and return None
+            return None
 
-        # Aggregate Statistics
-        total_runs = len(runs)
+    def run_batch(self, count: int = 5) -> Dict[str, Any]:
+        """Runs the simulation N times with variations, bounded concurrency, and error isolation."""
+        successful_runs: List[SimulationRun] = []
+        failed_count = 0
+
+        workers = min(self.max_concurrency, max(1, count))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(self._execute_single_run, i) for i in range(count)]
+            for future in as_completed(futures):
+                res = future.result()
+                if res is not None:
+                    successful_runs.append(res)
+                else:
+                    failed_count += 1
+
+        total_completed = len(successful_runs)
+        if total_completed == 0:
+            return {
+                "scenario_name": self.original_scenario.name,
+                "total_runs": count,
+                "completed_runs": 0,
+                "failed_runs": failed_count,
+                "failure_rates": {},
+                "summary": f"All {count} batch simulation runs encountered errors.",
+                "runs": []
+            }
+
         failures = {
             "loop": 0,
             "deadlock": 0,
@@ -63,28 +80,32 @@ class BatchRunner:
         }
         threshold = 0.5
 
-        for run in runs:
+        for run in successful_runs:
             for k in failures.keys():
                 if run.detector_scores.get(k, 0.0) >= threshold:
                     failures[k] += 1
 
-        failure_rates = {k: v / total_runs for k, v in failures.items()}
+        failure_rates = {k: v / total_completed for k, v in failures.items()}
         
-        # Determine overall threat and write summary
         summary_bullets = []
         for failure_type, rate in failure_rates.items():
             if rate > 0.0:
                 summary_bullets.append(f"{failure_type.capitalize()} failure: {rate:.0%} of runs")
 
         if summary_bullets:
-            overall_summary = f"This scenario '{self.original_scenario.name}' has a high-risk profile: " + ", ".join(summary_bullets)
+            overall_summary = f"Scenario '{self.original_scenario.name}' batch result: " + ", ".join(summary_bullets)
         else:
-            overall_summary = f"This scenario '{self.original_scenario.name}' ran cleanly. 0% failure rate across {total_runs} runs."
+            overall_summary = f"Scenario '{self.original_scenario.name}' ran cleanly across {total_completed} successful runs."
+
+        if failed_count > 0:
+            overall_summary += f" ({failed_count} runs failed execution)"
 
         return {
             "scenario_name": self.original_scenario.name,
-            "total_runs": total_runs,
+            "total_runs": count,
+            "completed_runs": total_completed,
+            "failed_runs": failed_count,
             "failure_rates": failure_rates,
             "summary": overall_summary,
-            "runs": [run.metadata.simulation_id for run in runs]
+            "runs": [run.metadata.simulation_id for run in successful_runs]
         }
