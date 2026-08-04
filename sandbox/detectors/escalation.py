@@ -1,7 +1,7 @@
 import re
 from typing import List, Tuple
 from sandbox.detectors.base import BaseDetector
-from sandbox.schemas import Message, ScenarioConfig
+from sandbox.schemas import Message, ScenarioConfig, DetectorFinding
 
 
 class EscalationDetector(BaseDetector):
@@ -86,6 +86,8 @@ class EscalationDetector(BaseDetector):
                 )
 
         score = float(max_escalation)
+        detected = score >= 0.3
+        severity = "HIGH" if score >= 0.6 else "MEDIUM" if detected else "LOW"
 
         if score > 0.6:
             explanation = (
@@ -106,3 +108,25 @@ class EscalationDetector(BaseDetector):
             )
 
         return score, explanation
+
+    def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
+        score, explanation = self.analyze(messages, scenario)
+        detected = score >= 0.3
+        severity = "HIGH" if score >= 0.6 else "MEDIUM" if detected else "LOW"
+
+        evidence = []
+        for msg in messages:
+            s = self._score_message(msg.content)
+            if s > 0.2:
+                evidence.append(f"Turn {msg.turn} ({msg.sender}): score {s:.2f} - \"{msg.content[:60]}...\"")
+
+        return DetectorFinding(
+            detector_name="escalation",
+            score=score,
+            detected=detected,
+            severity=severity,
+            explanation=explanation,
+            evidence=evidence[:5],
+            details={"message_count": len(messages)},
+        )
+

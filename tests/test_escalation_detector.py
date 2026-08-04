@@ -62,3 +62,16 @@ def test_escalation_detector_too_few_messages(mock_scenario):
     score, explanation = detector.analyze(messages, mock_scenario)
     assert score == 0.0
     assert "not enough" in explanation.lower()
+
+def test_escalation_detector_finding(mock_scenario):
+    detector = EscalationDetector()
+    messages = [
+        Message(sender="Alice", receiver="Bob", content="I'd like to discuss.", turn=1),
+        Message(sender="Bob", receiver="Alice", content="Sure.", turn=2),
+        Message(sender="Alice", receiver="Bob", content="This is unacceptable and ridiculous!", turn=3),
+        Message(sender="Bob", receiver="Alice", content="Absurd ultimatum or else suffer!", turn=4),
+    ]
+    finding = detector.analyze_finding(messages, mock_scenario)
+    assert finding.detected is True
+    assert len(finding.evidence) > 0
+
