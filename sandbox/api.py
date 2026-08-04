@@ -37,10 +37,12 @@ class HealthResponse(BaseModel):
     version: str = "2.0.0"
 
 class SimulationRequest(BaseModel):
-    scenario_name: str = Field("negotiation", description="Name of scenario (negotiation, resource_allocation, debate_consensus)")
+    scenario_name: Optional[str] = Field(None, description="Name of pre-existing scenario")
+    scenario_payload: Optional[ScenarioConfig] = Field(None, description="Inline scenario definition payload")
     backend: str = Field("dummy", description="LLM backend (dummy, ollama, openai, anthropic)")
     temperature: float = Field(0.7, description="Temperature (0.0 to 1.2)")
     turns: Optional[int] = Field(None, description="Number of turns")
+    random_seed: Optional[int] = Field(None, description="Optional seed for deterministic simulation")
 
 class BatchSimulationRequest(BaseModel):
     scenario_name: str = Field("negotiation")
@@ -60,16 +62,27 @@ def health():
 
 @app.post("/simulate", response_model=SimulationRun)
 def run_simulation(req: SimulationRequest):
-    scenario_path = f"scenarios/{req.scenario_name}.yaml"
-    if not os.path.exists(scenario_path):
-        raise HTTPException(status_code=404, detail=f"Scenario '{req.scenario_name}' not found.")
-    
+    if not req.scenario_name and not req.scenario_payload:
+        raise HTTPException(status_code=400, detail="Must provide either 'scenario_name' or 'scenario_payload'.")
+
+    scenario: ScenarioConfig
+    if req.scenario_payload:
+        scenario = req.scenario_payload
+    else:
+        scenario_path = f"scenarios/{req.scenario_name}.yaml"
+        if not os.path.exists(scenario_path):
+            raise HTTPException(status_code=404, detail=f"Scenario '{req.scenario_name}' not found.")
+        try:
+            scenario = load_scenario(scenario_path)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid scenario definition: {str(e)}")
+
     try:
-        scenario = load_scenario(scenario_path)
         sim = Simulation(
             scenario=scenario,
             backend_name=req.backend,
-            temperature=req.temperature
+            temperature=req.temperature,
+            random_seed=req.random_seed,
         )
         run_record = sim.run(max_turns=req.turns)
         return run_record

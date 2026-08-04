@@ -51,6 +51,27 @@ def test_simulate_endpoint():
     assert "messages" in data
     assert len(data["messages"]) > 0
 
+def test_simulate_endpoint_inline_payload():
+    payload = {
+        "name": "inline_test",
+        "description": "Inline scenario",
+        "system_prompt": "Prompt",
+        "max_turns": 2,
+        "agents": [
+            {"name": "Alice", "role": "Buyer", "goal": "Goal1"},
+            {"name": "Bob", "role": "Seller", "goal": "Goal2"},
+        ]
+    }
+    response = client.post("/simulate", json={
+        "scenario_payload": payload,
+        "backend": "dummy",
+        "turns": 2
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["metadata"]["scenario_name"] == "inline_test"
+
+
 def test_runs_lifecycle_endpoints():
     # 1. Register run
     create_res = client.post("/runs", json={
