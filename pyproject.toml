@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swarmscope"
+version = "0.1.0"
+description = "A pre-deployment flight simulator for multi-agent LLM systems"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    "venv",
+    "node_modules",
+    "sdk/ts/node_modules",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = []
