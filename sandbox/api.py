@@ -45,10 +45,19 @@ class SimulationRequest(BaseModel):
     random_seed: Optional[int] = Field(None, description="Optional seed for deterministic simulation")
 
 class BatchSimulationRequest(BaseModel):
-    scenario_name: str = Field("negotiation")
-    backend: str = Field("dummy")
-    temperature: float = Field(0.7)
-    count: int = Field(5, description="Number of Monte Carlo runs")
+    scenario_name: str = Field("negotiation", description="Name of pre-existing scenario")
+    backend: str = Field("dummy", description="LLM backend")
+    temperature: float = Field(0.7, ge=0.0, le=1.5, description="Base temperature")
+    count: int = Field(5, ge=1, le=50, description="Number of Monte Carlo runs (1 to 50)")
+
+class BatchSimulationResponse(BaseModel):
+    scenario_name: str
+    total_runs: int
+    completed_runs: int = 0
+    failed_runs: int = 0
+    failure_rates: Dict[str, float]
+    summary: str
+    runs: List[str]
 
 class PredictionRequest(BaseModel):
     scenario_name: str
@@ -89,7 +98,7 @@ def run_simulation(req: SimulationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/batch-simulate")
+@app.post("/batch-simulate", response_model=BatchSimulationResponse)
 def run_batch(req: BatchSimulationRequest):
     scenario_path = f"scenarios/{req.scenario_name}.yaml"
     if not os.path.exists(scenario_path):

@@ -71,6 +71,20 @@ def test_simulate_endpoint_inline_payload():
     data = response.json()
     assert data["metadata"]["scenario_name"] == "inline_test"
 
+def test_batch_simulate_endpoint():
+    response = client.post("/batch-simulate", json={
+        "scenario_name": "negotiation",
+        "backend": "dummy",
+        "temperature": 0.7,
+        "count": 2
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scenario_name"] == "negotiation"
+    assert data["total_runs"] == 2
+    assert "failure_rates" in data
+
+
 
 def test_runs_lifecycle_endpoints():
     # 1. Register run
