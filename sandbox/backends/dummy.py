@@ -1,12 +1,25 @@
 import re
 import random
+from typing import Optional, List
 from sandbox.backends.base import BaseLLMBackend
 
 class DummyBackend(BaseLLMBackend):
-    def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
-        """Generates mock dialogue matching the scenarios to allow local testing."""
+    backend_name = "dummy"
+
+    def __init__(self, seed: Optional[int] = None):
+        self.seed = seed
+        self.rng = random.Random(seed) if seed is not None else None
+
+    def generate(self, system_prompt: str, prompt: str, history: Optional[List] = None, temperature: float = 0.7) -> str:
+        """Generates deterministic mock dialogue matching scenarios to allow local testing."""
         history = history or []
         
+        # Use local RNG if seed is configured or random.choice if not
+        def choose(options):
+            if self.rng:
+                return self.rng.choice(options)
+            return random.choice(options)
+
         # Detect agent role/name from prompt or system_prompt
         agent_name = "Agent"
         match = re.search(r"Your name is (\w+)", system_prompt + prompt)
@@ -28,7 +41,8 @@ class DummyBackend(BaseLLMBackend):
         # Extract recent numbers from history
         last_prices = []
         for msg in history:
-            nums = re.findall(r"\$\d+(?:,\d+)?", msg.get("content", ""))
+            content = msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
+            nums = re.findall(r"\$\d+(?:,\d+)?", content)
             for num in nums:
                 val = int(num.replace("$", "").replace(",", ""))
                 last_prices.append(val)
@@ -61,45 +75,34 @@ class DummyBackend(BaseLLMBackend):
             cooperativeness = float(match_coop.group(1))
             
         if is_negotiation:
-            # Check if Alice or Bob
             is_buyer = "buyer" in text_context or "alice" in agent_name.lower()
             
             if not history:
-                return random.choice(openers_buyer) if is_buyer else random.choice(openers_seller)
+                return choose(openers_buyer) if is_buyer else choose(openers_seller)
             
-            # Adjust concessions based on personality traits
-            # High assertiveness + low cooperativeness = small steps (tougher negotiation)
-            # Low assertiveness + high cooperativeness = large steps (softer negotiation)
             step_multiplier = (1.5 - assertiveness) * (0.5 + cooperativeness)
             step_size = int(400 * step_multiplier)
             step_size = max(100, min(1000, step_size))
             
-            # Simple simulation: Alice increases bid, Bob decreases offer
             if is_buyer:
-                # We are the Buyer (Alice). Target: $10,000. Limit: $12,000.
                 if last_price is None:
                     return "Would you accept $9,000 for the car?"
                 
                 if last_price <= 10000:
                     return f"That is a fair deal. I accept your offer of ${last_price:,}!"
                 elif last_price <= 12000:
-                    # Near limit. Accept if temperature or probability allows, or make counter
                     if last_price <= 11000:
                         return f"Okay, let's settle on ${last_price:,}. I accept."
                     else:
                         counter = min(12000, last_price - step_size)
                         return f"Hmm, ${last_price:,} is high. Can we meet in the middle at ${counter:,}?"
                 else:
-                    # Bob's offer is above $12,000
-                    # Let's see if we can bid our limit
                     current_bid = 8000 + (len(history) * step_size)
                     if current_bid >= 12000:
                         return "I cannot go above $12,000. I must walk away from this negotiation."
                     else:
                         return f"That is too expensive for me. How about ${current_bid:,}?"
-                        return f"That is too expensive for me. How about ${current_bid:,}?"
             else:
-                # We are the Seller (Bob). Target: $13,000. Limit: $11,000.
                 if last_price is None:
                     return "I can lower the price to $14,500, but no further for now."
                 
@@ -112,7 +115,6 @@ class DummyBackend(BaseLLMBackend):
                         counter = max(11000, last_price + step_size)
                         return f"I can't go that low. How about ${counter:,}?"
                 else:
-                    # Buyer bid below $11,000
                     current_offer = 15000 - (len(history) * step_size)
                     if current_offer <= 11000:
                         return "I cannot sell below $11,000. I must walk away."
@@ -127,9 +129,7 @@ class DummyBackend(BaseLLMBackend):
                 else:
                     return "Region South has 800MW available. We are offering it at $100 per MW."
             
-            # Resource negotiation
             if is_north:
-                # North budget is $100 per MW max
                 if last_price is None:
                     return "We request power transfer. What is your price per MW?"
                 if last_price <= 90:
@@ -139,7 +139,6 @@ class DummyBackend(BaseLLMBackend):
                 else:
                     return f"We cannot pay ${last_price} per MW. Our absolute maximum budget is $100 per MW."
             else:
-                # South limits: min $75 per MW, target $90+
                 if last_price is None:
                     return "We can provide 500MW. Our price is $95 per MW."
                 if last_price >= 90:
@@ -152,7 +151,6 @@ class DummyBackend(BaseLLMBackend):
         elif is_debate:
             is_nosql = "alice" in agent_name.lower() or "nosql" in text_context
             
-            # Simple technical arguments to simulate loop/consensus
             arguments_nosql = [
                 "For high write throughput and schema flexibility, NoSQL is the obvious choice.",
                 "Microservices require independent databases. MongoDB allows fast scaling of new features.",
@@ -167,13 +165,8 @@ class DummyBackend(BaseLLMBackend):
             ]
             
             idx = min(len(history) // 2, 3)
-            
-            if is_nosql:
-                return arguments_nosql[idx]
-            else:
-                return arguments_sql[idx]
+            return arguments_nosql[idx] if is_nosql else arguments_sql[idx]
                 
-        # Default fallback conversation text
         phrases = [
             f"Hello, I am {agent_name}. Let's work together to achieve our goals.",
             "Regarding the current proposal, let's analyze the details closely.",
