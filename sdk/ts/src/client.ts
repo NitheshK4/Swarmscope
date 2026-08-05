@@ -160,4 +160,28 @@ export class SwarmScopeClient {
 
         return await response.json();
     }
+
+    async getRun(simulationId: string): Promise<SimulationRun> {
+        const response = await fetch(`${this.baseUrl}/runs/${simulationId}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch simulation run ${simulationId}: ${response.statusText}`);
+        }
+        return (await response.json()) as SimulationRun;
+    }
+
+    async getRiskSummary(simulationId: string): Promise<any> {
+        const response = await fetch(`${this.baseUrl}/runs/${simulationId}/risk-summary`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch risk summary for ${simulationId}: ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    async exportRun(simulationId: string, format: string = "json"): Promise<string> {
+        const response = await fetch(`${this.baseUrl}/runs/${simulationId}/export?format=${format}`);
+        if (!response.ok) {
+            throw new Error(`Failed to export simulation run ${simulationId}: ${response.statusText}`);
+        }
+        return await response.text();
+    }
 }
