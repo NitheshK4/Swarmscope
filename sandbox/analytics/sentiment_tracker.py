@@ -1,3 +1,4 @@
+import functools
 import re
 from typing import Any, Dict, List
 
@@ -6,27 +7,28 @@ from sandbox.schemas import Message
 
 class SentimentTracker:
     def __init__(self):
-        self.cooperative_words = {
+        self.cooperative_words = [
             "agree", "accept", "deal", "compromise", "pleased", "great",
             "fair", "reasonable", "happy to", "settle", "partner",
             "understand", "flexible", "consensus", "middle ground"
-        }
-        self.hostile_words = {
+        ]
+        self.hostile_words = [
             "refuse", "cannot", "impossible", "walk away", "too low", "too high",
             "unacceptable", "bottleneck", "demanding", "no way", "unreasonable",
             "rigid", "stubborn", "disagree", "reject", "limits", "frustrated"
-        }
+        ]
+        self._coop_patterns = [re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in self.cooperative_words]
+        self._hostile_patterns = [re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in self.hostile_words]
 
+    @functools.lru_cache(maxsize=1024)
     def analyze_message_sentiment(self, text: str) -> float:
         """Calculates sentiment polarity from -1.0 (tense/hostile) to +1.0 (cooperative)."""
-        words = set(re.findall(r"\b\w+\b", text.lower()))
-
-        coop_count = len(words.intersection(self.cooperative_words))
-        hostile_count = len(words.intersection(self.hostile_words))
+        coop_count = sum(1 for p in self._coop_patterns if p.search(text))
+        hostile_count = sum(1 for p in self._hostile_patterns if p.search(text))
 
         total = coop_count + hostile_count
         if total == 0:
-            return 0.0 # Neutral
+            return 0.0  # Neutral
 
         return (coop_count - hostile_count) / total
 
