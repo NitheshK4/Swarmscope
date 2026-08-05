@@ -74,7 +74,7 @@ class ConversationExporter:
     def to_csv(self, run: SimulationRun) -> str:
         """Exports simulation messages as CSV with metadata columns."""
         output = io.StringIO()
-        writer = csv.writer(output)
+        writer = csv.writer(output, lineterminator="\n")
 
         # Header row
         writer.writerow([
@@ -164,15 +164,15 @@ class ConversationExporter:
             # Fallback simple YAML serializer if PyYAML is missing
             lines = ["metadata:"]
             for k, v in data["metadata"].items():
-                lines.append(f"  {k}: {v}")
+                lines.append(f"  {k}: {json.dumps(v)}")
             lines.append("detector_scores:")
             for k, v in data["detector_scores"].items():
                 lines.append(f"  {k}: {v}")
             lines.append("messages:")
             for m in data["messages"]:
                 lines.append(f"  - turn: {m['turn']}")
-                lines.append(f"    sender: {m['sender']}")
-                lines.append(f"    receiver: {m['receiver']}")
+                lines.append(f"    sender: {json.dumps(m['sender'])}")
+                lines.append(f"    receiver: {json.dumps(m['receiver'])}")
                 lines.append(f"    content: {json.dumps(m['content'])}")
             return "\n".join(lines) + "\n"
 
