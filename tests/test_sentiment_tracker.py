@@ -41,3 +41,19 @@ def test_track_conversation_sentiment():
 
     assert trajectory[2]["classification"] == "Neutral"
     assert trajectory[2]["sentiment_score"] == 0.0
+
+
+def test_sentiment_multi_word_phrases_and_caching():
+    tracker = SentimentTracker()
+    text = "We can find a middle ground and work together."
+    score1 = tracker.analyze_message_sentiment(text)
+    assert score1 > 0.0
+
+    # Test caching hit
+    score2 = tracker.analyze_message_sentiment(text)
+    assert score1 == score2
+
+    text_hostile = "I will walk away because this offer is too low and no way acceptable."
+    score_h = tracker.analyze_message_sentiment(text_hostile)
+    assert score_h < 0.0
+
