@@ -7,8 +7,9 @@ from typing import Any, Dict, List, Optional
 class SwarmScopeClient:
     """Python Client SDK for interacting with the SwarmScope API server."""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8000", timeout: float = 30.0):
         self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
 
     def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}{endpoint}"
@@ -17,7 +18,7 @@ class SwarmScopeClient:
 
         req = urllib.request.Request(url, data=payload, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 resp_text = resp.read().decode("utf-8")
                 if resp.headers.get_content_type() == "application/json":
                     return json.loads(resp_text)
@@ -65,7 +66,7 @@ class SwarmScopeClient:
         return self._request("POST", "/predict", payload)
 
     def register_external_run(self, scenario_name: str, backend: str = "custom",
-                              temperature: float = 0.7) -> str:
+                               temperature: float = 0.7) -> str:
         """Register a new external simulation run for turn-by-turn monitoring."""
         res = self._request("POST", "/runs", {
             "scenario_name": scenario_name,
@@ -75,7 +76,7 @@ class SwarmScopeClient:
         return res["simulation_id"]
 
     def post_external_message(self, simulation_id: str, sender: str, receiver: str,
-                              content: str, turn: int) -> Dict[str, Any]:
+                               content: str, turn: int) -> Dict[str, Any]:
         """Post a turn message to an external run and receive live detector scores."""
         return self._request("POST", f"/runs/{simulation_id}/messages", {
             "sender": sender,
@@ -87,6 +88,10 @@ class SwarmScopeClient:
     def get_run(self, simulation_id: str) -> Dict[str, Any]:
         """Get full details of a recorded simulation run."""
         return self._request("GET", f"/runs/{simulation_id}")
+
+    def get_risk_summary(self, simulation_id: str) -> Dict[str, Any]:
+        """Get aggregated risk summary and recommendations for a simulation run."""
+        return self._request("GET", f"/runs/{simulation_id}/risk-summary")
 
     def export_run(self, simulation_id: str, format: str = "json") -> str:
         """Export a simulation run in json, csv, jsonl, yaml, or markdown format."""
