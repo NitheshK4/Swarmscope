@@ -8,7 +8,8 @@ from sandbox.backends.base import BaseLLMBackend
 class DummyBackend(BaseLLMBackend):
     backend_name = "dummy"
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: Optional[int] = None, **kwargs):
+        super().__init__(**kwargs)
         self.seed = seed
         self.rng = random.Random(seed) if seed is not None else None
 

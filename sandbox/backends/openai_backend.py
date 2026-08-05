@@ -1,3 +1,5 @@
+from typing import Optional
+
 from openai import OpenAI
 
 from sandbox.backends.base import BaseLLMBackend
@@ -6,7 +8,8 @@ from sandbox.backends.base import BaseLLMBackend
 class OpenAIBackend(BaseLLMBackend):
     backend_name = "openai"
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini", **kwargs):
+        super().__init__(**kwargs)
         self.api_key = api_key or "dummy-key"
         self.model = model
         try:

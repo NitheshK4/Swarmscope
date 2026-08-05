@@ -1,3 +1,5 @@
+from typing import Optional
+
 import anthropic
 
 from sandbox.backends.base import BaseLLMBackend
@@ -6,7 +8,8 @@ from sandbox.backends.base import BaseLLMBackend
 class AnthropicBackend(BaseLLMBackend):
     backend_name = "anthropic"
 
-    def __init__(self, api_key: str, model: str = "claude-3-5-sonnet-20240620"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-5-sonnet-20240620", **kwargs):
+        super().__init__(**kwargs)
         self.api_key = api_key or "dummy-key"
         self.model = model
         try:

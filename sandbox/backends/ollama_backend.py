@@ -6,7 +6,8 @@ from sandbox.backends.base import BaseLLMBackend
 class OllamaBackend(BaseLLMBackend):
     backend_name = "ollama"
 
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "llama3"):
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "llama3", **kwargs):
+        super().__init__(**kwargs)
         self.base_url = base_url.rstrip("/")
         self.model = model
 

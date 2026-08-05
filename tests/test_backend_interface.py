@@ -37,3 +37,29 @@ def test_backend_error_structure():
     err = BackendError("openai", "Missing API key")
     assert "openai" in str(err)
     assert err.backend_name == "openai"
+
+
+def test_backend_retry_success_and_failure():
+    import pytest
+
+    dummy = DummyBackend(max_retries=3, backoff_factor=0.01)
+    attempts = 0
+
+    def flaky_func():
+        nonlocal attempts
+        attempts += 1
+        if attempts < 2:
+            raise RuntimeError("Transient error")
+        return "success"
+
+    res = dummy.with_retry(flaky_func)
+    assert res == "success"
+    assert attempts == 2
+
+    def failing_func():
+        raise ValueError("Persistent error")
+
+    with pytest.raises(BackendError) as exc_info:
+        dummy.with_retry(failing_func)
+    assert "Failed after 3 attempts" in str(exc_info.value)
+
