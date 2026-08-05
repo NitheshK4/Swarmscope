@@ -6,27 +6,50 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    LLM_BACKEND = os.getenv("LLM_BACKEND", "dummy").lower()
+    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "dummy").lower()
 
     # Ollama Backend Settings
-    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
 
     # OpenAI Backend Settings
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     # Anthropic Backend Settings
-    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
 
     # Storage Settings
-    DUCKDB_PATH = os.getenv("DUCKDB_PATH", "simulation_runs.duckdb")
+    DUCKDB_PATH: str = os.getenv("DUCKDB_PATH", "simulation_runs.duckdb")
 
     # Webhook / Notification Settings
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
-    WEBHOOK_ENABLED = os.getenv("WEBHOOK_ENABLED", "false").lower() == "true"
-    RISK_ALERT_THRESHOLD = float(os.getenv("RISK_ALERT_THRESHOLD", "0.6"))
+    WEBHOOK_URL: str = os.getenv("WEBHOOK_URL", "")
+    WEBHOOK_ENABLED: bool = os.getenv("WEBHOOK_ENABLED", "false").lower() in ("true", "1", "yes")
+
+    @classmethod
+    def get_float(cls, key: str, default: float) -> float:
+        val = os.getenv(key)
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except ValueError:
+            return default
+
+    @classmethod
+    def get_int(cls, key: str, default: int) -> int:
+        val = os.getenv(key)
+        if val is None:
+            return default
+        try:
+            return int(val)
+        except ValueError:
+            return default
+
+    @classmethod
+    def risk_alert_threshold(cls) -> float:
+        return cls.get_float("RISK_ALERT_THRESHOLD", 0.6)
 
     @classmethod
     def validate_keys(cls):
