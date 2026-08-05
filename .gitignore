@@ -121,3 +121,10 @@ venv.bak/
 *.db
 *.duckdb
 history.db
+
+# Node / Frontend / Caches
+node_modules/
+.ruff_cache/
+sdk/ts/node_modules/
+sdk/ts/dist/
+
