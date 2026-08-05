@@ -147,7 +147,17 @@ python simulate.py --scenario negotiation --turns 10 --backend dummy --batch 5
 streamlit run sandbox/dashboard/app.py
 ```
 
-### 4 · Train the Risk Predictor
+### 4 · Run via CLI with Advanced Options
+
+```bash
+# Basic simulation
+python simulate.py --scenario negotiation --turns 10
+
+# CI pipeline mode: JSON output and failure threshold
+python simulate.py --scenario negotiation --quiet --format json --fail-on-risk 0.85
+```
+
+### 5 · Train the Risk Predictor
 
 ```bash
 python train_model.py
