@@ -27,3 +27,21 @@ def test_risk_aggregator_low_risk():
     summary = aggregator.aggregate(findings)
     assert summary.overall_severity == "LOW"
     assert "passed safety checks" in summary.recommendations[0]
+
+
+def test_risk_aggregator_custom_thresholds():
+    aggregator = RiskAggregator(medium_threshold=0.1, high_threshold=0.3, critical_threshold=0.5)
+    findings = [
+        DetectorFinding(detector_name="loop", score=0.45, detected=True, severity="MEDIUM"),
+    ]
+    summary = aggregator.aggregate(findings)
+    assert summary.overall_severity == "HIGH"
+
+
+def test_risk_aggregator_empty_findings():
+    aggregator = RiskAggregator()
+    summary = aggregator.aggregate([])
+    assert summary.overall_score == 0.0
+    assert summary.overall_severity == "LOW"
+    assert summary.max_detector == "none"
+
