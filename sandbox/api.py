@@ -289,7 +289,13 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
     detector_explanations = {}
     detectors = get_all_detectors()
     for det in detectors:
-        name = det.__class__.__name__.lower().replace("detector", "")
+        raw_name = det.__class__.__name__.lower().replace("detector", "")
+        if raw_name == "goaldrift":
+            name = "goal_drift"
+        elif raw_name == "informationleakage":
+            name = "information_leakage"
+        else:
+            name = raw_name
         score, explanation = det.analyze(run.messages, scenario)
         detector_scores[name] = score
         detector_explanations[name] = explanation
