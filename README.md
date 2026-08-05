@@ -224,6 +224,8 @@ The FastAPI server exposes these endpoints for programmatic access and SDK integ
 | `GET` | `/runs` | List all historical runs |
 | `POST` | `/runs` | Register an external run |
 | `GET` | `/runs/{id}` | Get run details (messages & scores) |
+| `GET` | `/runs/{id}/findings` | Retrieve structured detector findings |
+| `GET` | `/runs/{id}/risk-summary` | Retrieve aggregated risk summary and recommendations |
 | `DELETE` | `/runs/{id}` | Delete a simulation run |
 | `POST` | `/runs/{id}/messages` | Stream messages into a run |
 | `POST` | `/runs/{id}/counterfactual` | Replay with mitigations |
@@ -275,6 +277,27 @@ curl -X POST http://localhost:8000/predict \
 ## 🔌 Client SDKs
 
 Polyglot SDKs for auditing agent applications from any environment. All SDKs communicate with the SwarmScope FastAPI server.
+
+<details>
+<summary><strong>Python SDK Example</strong></summary>
+
+```python
+from sdk.python.swarmscope_client import SwarmScopeClient
+
+client = SwarmScopeClient(base_url="http://localhost:8000")
+
+# Check API health
+if client.check_health():
+    # Execute simulation
+    run = client.run_simulation(scenario_name="negotiation", turns=10)
+    sim_id = run["metadata"]["simulation_id"]
+    
+    # Retrieve risk summary
+    summary = client.get_risk_summary(sim_id)
+    print(f"Overall Risk: {summary['overall_risk_level']}")
+```
+
+</details>
 
 <table>
 <tr>
