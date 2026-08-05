@@ -24,7 +24,19 @@ from sandbox.simulation import Simulation
 from sandbox.storage import get_store
 from sandbox.utils import generate_id, get_current_timestamp, load_scenario
 
-app = FastAPI(title="Emergent Behavior Sandbox API", version="2.0.0")
+tags_metadata = [
+    {"name": "Health", "description": "System health and status endpoints."},
+    {"name": "Scenarios", "description": "Scenario management and listing."},
+    {"name": "Simulation", "description": "Run and manage agent simulations."},
+    {"name": "Analytics", "description": "Exporting and risk analysis."},
+]
+
+app = FastAPI(
+    title="SwarmScope API",
+    description="Enterprise safety evaluation and vulnerability platform for multi-agent LLM systems.",
+    version="2.0.0",
+    openapi_tags=tags_metadata,
+)
 
 # Allow browser requests from any origin (local dev dashboard)
 app.add_middleware(
