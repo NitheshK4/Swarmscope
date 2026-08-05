@@ -103,3 +103,23 @@ def test_export_json_redacts_sensitive_metadata():
     assert sanitized["normal_param"] == "val"
 
 
+def test_export_csv_multiline_and_escaping():
+    metadata = SimulationMetadata(
+        simulation_id="export_quotes_002",
+        scenario_name="complex",
+        timestamp="2026-07-15T00:00:00",
+        total_turns=1,
+        backend="dummy",
+        temperature=0.7,
+        status="completed",
+    )
+    messages = [
+        Message(sender="Alice", receiver="Bob", content='Line 1 with "quotes", and commas.', turn=1),
+    ]
+    run = SimulationRun(metadata=metadata, messages=messages)
+    exporter = ConversationExporter()
+    csv_str = exporter.to_csv(run)
+    assert '"Line 1 with ""quotes"", and commas."' in csv_str
+
+
+
