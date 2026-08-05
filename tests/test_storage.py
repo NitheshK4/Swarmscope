@@ -81,3 +81,31 @@ def test_duckdb_delete_run(temp_db):
 def test_duckdb_get_nonexistent_run(temp_db):
     with pytest.raises(ValueError):
         temp_db.get_run("sim-nonexistent")
+
+
+def test_duckdb_concurrent_access(temp_db):
+    import concurrent.futures
+
+    def worker(i: int):
+        m = SimulationMetadata(
+            simulation_id=f"sim-conc-{i}",
+            scenario_name="test_conc",
+            timestamp="12:00",
+            total_turns=1,
+            backend="dummy",
+            temperature=0.7,
+            status="completed",
+        )
+        msg = Message(sender="A", receiver="B", content=f"Msg {i}", turn=1)
+        run = SimulationRun(metadata=m, messages=[msg])
+        temp_db.save_run(run)
+        return temp_db.get_run(f"sim-conc-{i}")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(worker, i) for i in range(10)]
+        results = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+    assert len(results) == 10
+    all_runs = temp_db.get_all_runs()
+    assert len(all_runs) == 10
+
