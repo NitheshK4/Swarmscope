@@ -1,13 +1,15 @@
-import yaml
-import os
 import argparse
+import os
 import sys
+
+import yaml
+
 
 def main():
     print("=" * 60)
     print("           SCENARIO YAML BOOTSTRAPPER")
     print("=" * 60)
-    
+
     # Parse args if passed, otherwise ask interactively
     parser = argparse.ArgumentParser(description="Create custom scenario configuration")
     parser.add_argument("--name", type=str, help="Scenario name")
@@ -45,12 +47,12 @@ def main():
         agent_name = input("  Agent Name: ").strip()
         agent_role = input("  Agent Role: ").strip()
         agent_goal = input("  Agent Goal: ").strip()
-        
+
         try:
             assertiveness = float(input("  Assertiveness trait (0.0 to 1.0, default 0.5): ").strip() or "0.5")
         except ValueError:
             assertiveness = 0.5
-            
+
         try:
             cooperativeness = float(input("  Cooperativeness trait (0.0 to 1.0, default 0.5): ").strip() or "0.5")
         except ValueError:
@@ -76,7 +78,7 @@ def main():
 
     os.makedirs("scenarios", exist_ok=True)
     out_file = f"scenarios/{name}.yaml"
-    
+
     with open(out_file, "w") as f:
         yaml.dump(scenario_data, f, default_flow_style=False, sort_keys=False)
 

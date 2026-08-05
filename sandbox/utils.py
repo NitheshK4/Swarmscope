@@ -1,9 +1,12 @@
-import yaml
 import uuid
-from typing import Dict, Any
 from datetime import datetime, timezone
+from typing import Any, Dict
+
+import yaml
 from pydantic import ValidationError
+
 from sandbox.schemas import ScenarioConfig
+
 
 class ScenarioValidationError(ValueError):
     """Custom exception raised when scenario YAML parsing/validation fails."""
@@ -18,7 +21,7 @@ def validate_scenario_dict(data: Dict[str, Any]) -> ScenarioConfig:
         raise ScenarioValidationError("Invalid scenario: 'name' is required and cannot be empty.")
     if not data.get("description"):
         raise ScenarioValidationError("Invalid scenario: 'description' is required and cannot be empty.")
-    
+
     agents = data.get("agents")
     if not agents or not isinstance(agents, list):
         raise ScenarioValidationError("Invalid scenario: 'agents' must be a non-empty list of agent configurations.")

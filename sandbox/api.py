@@ -1,20 +1,28 @@
 import os
+from typing import Dict, List, Optional
+
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
-from sandbox.utils import load_scenario, generate_id, get_current_timestamp
-from sandbox.simulation import Simulation
+
 from sandbox.analytics.batch_runner import BatchRunner
 from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
-from sandbox.analytics.report_generator import ReportGenerator
 from sandbox.analytics.exporter import ConversationExporter
-from sandbox.predictive_model import FailurePredictor
-from sandbox.storage import get_store
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message, ScenarioConfig, DetectorFinding
+from sandbox.analytics.report_generator import ReportGenerator
 from sandbox.detectors import get_all_detectors
+from sandbox.predictive_model import FailurePredictor
+from sandbox.schemas import (
+    DetectorFinding,
+    Message,
+    ScenarioConfig,
+    SimulationMetadata,
+    SimulationRun,
+)
+from sandbox.simulation import Simulation
+from sandbox.storage import get_store
+from sandbox.utils import generate_id, get_current_timestamp, load_scenario
 
 app = FastAPI(title="Emergent Behavior Sandbox API", version="2.0.0")
 
@@ -103,7 +111,7 @@ def run_batch(req: BatchSimulationRequest):
     scenario_path = f"scenarios/{req.scenario_name}.yaml"
     if not os.path.exists(scenario_path):
         raise HTTPException(status_code=404, detail=f"Scenario '{req.scenario_name}' not found.")
-    
+
     try:
         runner = BatchRunner(
             scenario_path=scenario_path,
@@ -252,7 +260,7 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
         run = store.get_run(simulation_id)
     except Exception:
         raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
-        
+
     # Append message
     new_msg = Message(
         sender=req.sender,
@@ -263,7 +271,7 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
     )
     run.messages.append(new_msg)
     run.metadata.total_turns = len(run.messages)
-    
+
     # Try to load scenario to pass to detectors, otherwise use default
     scenario_path = f"scenarios/{run.metadata.scenario_name}.yaml"
     if os.path.exists(scenario_path):
@@ -275,7 +283,7 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
             agents=[],
             system_prompt=""
         )
-        
+
     # Re-run detectors
     detector_scores = {}
     detector_explanations = {}
@@ -285,15 +293,15 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
         score, explanation = det.analyze(run.messages, scenario)
         detector_scores[name] = score
         detector_explanations[name] = explanation
-        
+
     run.detector_scores = detector_scores
     run.detector_explanations = detector_explanations
-    
+
     # Check if this message indicates termination/walkaway
     lowered_content = req.content.lower()
     if "walk away" in lowered_content or "exit negotiation" in lowered_content or "cannot agree" in lowered_content:
         run.metadata.status = "terminated"
-        
+
     try:
         store.save_run(run)
         return {
@@ -322,13 +330,13 @@ def export_run(simulation_id: str, format: str = Query("json", description="Expo
         run = store.get_run(simulation_id)
     except Exception:
         raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
-    
+
     exporter = ConversationExporter()
     try:
         content = exporter.export(run, fmt=format)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # Set appropriate content type
     content_types = {
         "json": "application/json",
@@ -352,7 +360,7 @@ def get_safety_report(simulation_id: str):
         run = store.get_run(simulation_id)
     except Exception:
         raise HTTPException(status_code=404, detail=f"Simulation run '{simulation_id}' not found.")
-    
+
     report = ReportGenerator.generate_markdown_report(run)
     return PlainTextResponse(content=report, media_type="text/markdown")
 
@@ -362,7 +370,7 @@ def list_scenarios():
     scenarios_dir = "scenarios"
     if not os.path.isdir(scenarios_dir):
         return {"scenarios": []}
-    
+
     scenarios = []
     for fname in sorted(os.listdir(scenarios_dir)):
         if fname.endswith(".yaml") or fname.endswith(".yml"):
@@ -382,7 +390,7 @@ def list_scenarios():
                     "description": "Error loading scenario",
                     "file": fname
                 })
-    
+
     return {"scenarios": scenarios, "total": len(scenarios)}
 
 @app.get("/stats")
@@ -393,25 +401,25 @@ def get_aggregate_stats():
         all_runs = store.get_all_runs()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
     if not all_runs:
         return {
             "total_runs": 0,
             "message": "No simulation runs recorded yet."
         }
-    
+
     total = len(all_runs)
     completed = sum(1 for r in all_runs if r.status == "completed")
     terminated = sum(1 for r in all_runs if r.status == "terminated")
     avg_turns = sum(r.total_turns for r in all_runs) / total if total > 0 else 0
-    
+
     # Scenario distribution
     scenario_counts: Dict[str, int] = {}
     backend_counts: Dict[str, int] = {}
     for r in all_runs:
         scenario_counts[r.scenario_name] = scenario_counts.get(r.scenario_name, 0) + 1
         backend_counts[r.backend] = backend_counts.get(r.backend, 0) + 1
-    
+
     return {
         "total_runs": total,
         "completed": completed,

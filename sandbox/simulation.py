@@ -1,28 +1,21 @@
-from typing import List
-from sandbox.config import Config
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message, ScenarioConfig
-from sandbox.backends import get_backend
-from sandbox.agents import Agent
-from sandbox.storage import get_store
-from sandbox.detectors import get_all_detectors
-from sandbox.utils import generate_id, get_current_timestamp
-
 import time
 from typing import List, Optional
+
+from sandbox.agents import Agent
+from sandbox.backends import get_backend
 from sandbox.config import Config
+from sandbox.detectors import get_all_detectors
 from sandbox.schemas import (
-    SimulationRun,
-    SimulationMetadata,
-    Message,
     ConversationEvent,
     DetectorFinding,
+    Message,
     ScenarioConfig,
+    SimulationMetadata,
+    SimulationRun,
 )
-from sandbox.backends import get_backend
-from sandbox.agents import Agent
 from sandbox.storage import get_store
-from sandbox.detectors import get_all_detectors
 from sandbox.utils import generate_id, get_current_timestamp
+
 
 class Simulation:
     def __init__(

@@ -1,7 +1,8 @@
 import json
-import urllib.request
 import urllib.parse
-from typing import Dict, Any, Optional, List
+import urllib.request
+from typing import Any, Dict, List, Optional
+
 
 class SwarmScopeClient:
     """Python Client SDK for interacting with the SwarmScope API server."""

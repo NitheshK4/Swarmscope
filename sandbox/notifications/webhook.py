@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from sandbox.config import Config
 
 logger = logging.getLogger(__name__)

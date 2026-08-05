@@ -1,10 +1,10 @@
-import pytest
 from sandbox.backends import get_backend
-from sandbox.backends.base import BaseLLMBackend, LLMResponse, BackendError
+from sandbox.backends.anthropic_backend import AnthropicBackend
+from sandbox.backends.base import BackendError, BaseLLMBackend, LLMResponse
 from sandbox.backends.dummy import DummyBackend
 from sandbox.backends.ollama_backend import OllamaBackend
 from sandbox.backends.openai_backend import OpenAIBackend
-from sandbox.backends.anthropic_backend import AnthropicBackend
+
 
 def test_backend_instantiation_and_types():
     dummy = get_backend("dummy")

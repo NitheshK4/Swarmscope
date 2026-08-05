@@ -1,6 +1,8 @@
 import os
 import pickle
-from sandbox.predictive_model.train import train_and_save, MODEL_FILE, get_scenario_agent_count
+
+from sandbox.predictive_model.train import MODEL_FILE, get_scenario_agent_count, train_and_save
+
 
 class FailurePredictor:
     def __init__(self):
@@ -11,7 +13,7 @@ class FailurePredictor:
         if not os.path.exists(MODEL_FILE):
             # Proactively train if model file is missing
             train_and_save()
-        
+
         with open(MODEL_FILE, "rb") as f:
             self.model_data = pickle.load(f)
 
@@ -19,24 +21,24 @@ class FailurePredictor:
         """Predicts the likelihood of an emergent failure occurring, without running a simulation."""
         if not self.model_data:
             self._load_model()
-            
+
         clf = self.model_data["classifier"]
         meta = self.model_data["encoding_meta"]
-        
+
         # Build encoded feature vector
         row = []
         row.append(float(temperature))
         row.append(float(total_turns))
         row.append(float(get_scenario_agent_count(scenario_name)))
-        
+
         # Scenario one-hot
         for s in meta["scenarios"]:
             row.append(1.0 if scenario_name == s else 0.0)
-            
+
         # Backend one-hot
         for b in meta["backends"]:
             row.append(1.0 if backend == b else 0.0)
-            
+
         # Predict probability of class 1 (failure)
         try:
             probabilities = clf.predict_proba([row])[0]

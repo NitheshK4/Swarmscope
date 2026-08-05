@@ -1,13 +1,14 @@
 from sandbox.schemas import (
-    Message,
-    ConversationEvent,
     AgentConfig,
+    ConversationEvent,
+    DetectorFinding,
+    Message,
     ScenarioConfig,
     SimulationConfig,
-    DetectorFinding,
     SimulationMetadata,
     SimulationRun,
 )
+
 
 def test_domain_model_instantiation():
     agent = AgentConfig(name="Alice", role="Buyer", goal="Buy cheap")

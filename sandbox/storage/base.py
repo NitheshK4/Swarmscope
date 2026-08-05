@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
+
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
+
 
 class BaseStore(ABC):
     @abstractmethod

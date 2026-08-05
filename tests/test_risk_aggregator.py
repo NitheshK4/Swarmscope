@@ -1,5 +1,6 @@
-from sandbox.schemas import DetectorFinding
 from sandbox.detectors.risk_aggregator import RiskAggregator, RiskSummary
+from sandbox.schemas import DetectorFinding
+
 
 def test_risk_aggregator_mixed_findings():
     aggregator = RiskAggregator()

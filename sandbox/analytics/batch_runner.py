@@ -1,10 +1,12 @@
-import random
 import copy
-from typing import List, Dict, Any, Optional
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List, Optional
+
 from sandbox.schemas import SimulationRun
 from sandbox.simulation import Simulation
 from sandbox.utils import load_scenario
+
 
 class BatchRunner:
     def __init__(self, scenario_path: str, backend_name: str = "dummy", base_temperature: float = 0.7, db_path: str = None, max_concurrency: int = 5):
@@ -38,7 +40,7 @@ class BatchRunner:
                 random_seed=1000 + index,
             )
             return sim.run()
-        except Exception as exc:
+        except Exception:
             # Failure isolated — log error and return None
             return None
 
@@ -86,7 +88,7 @@ class BatchRunner:
                     failures[k] += 1
 
         failure_rates = {k: v / total_completed for k, v in failures.items()}
-        
+
         summary_bullets = []
         for failure_type, rate in failure_rates.items():
             if rate > 0.0:

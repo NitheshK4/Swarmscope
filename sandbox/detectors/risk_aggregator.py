@@ -1,6 +1,9 @@
-from typing import List, Dict, Any
-from pydantic import BaseModel, Field
+from typing import Dict, List
+
+from pydantic import BaseModel
+
 from sandbox.schemas import DetectorFinding
+
 
 class RiskSummary(BaseModel):
     overall_score: float

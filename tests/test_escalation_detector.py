@@ -1,6 +1,7 @@
 import pytest
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
+
 from sandbox.detectors.escalation import EscalationDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
 
 
 @pytest.fixture

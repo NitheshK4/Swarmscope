@@ -1,6 +1,7 @@
 import pytest
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
+
 from sandbox.detectors.information_leakage import InformationLeakageDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
 
 
 @pytest.fixture

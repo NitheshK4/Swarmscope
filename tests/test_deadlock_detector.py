@@ -1,5 +1,6 @@
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
 from sandbox.detectors.deadlock import DeadlockDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
+
 
 def test_deadlock_detector_positive_case():
     detector = DeadlockDetector()

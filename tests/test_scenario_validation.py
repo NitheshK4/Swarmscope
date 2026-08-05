@@ -1,7 +1,10 @@
-import pytest
-import tempfile
 import os
-from sandbox.utils import load_scenario, validate_scenario_dict, ScenarioValidationError
+import tempfile
+
+import pytest
+
+from sandbox.utils import ScenarioValidationError, load_scenario, validate_scenario_dict
+
 
 def test_valid_scenario_validation():
     valid_data = {

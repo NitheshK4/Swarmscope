@@ -1,7 +1,9 @@
-import pytest
 import json
-from sandbox.schemas import Message, SimulationRun, SimulationMetadata
+
+import pytest
+
 from sandbox.analytics.exporter import ConversationExporter
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 
 
 @pytest.fixture

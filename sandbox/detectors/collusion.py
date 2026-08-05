@@ -1,7 +1,9 @@
 import re
 from typing import List, Tuple
+
 from sandbox.detectors.base import BaseDetector
-from sandbox.schemas import Message, ScenarioConfig, DetectorFinding
+from sandbox.schemas import DetectorFinding, Message, ScenarioConfig
+
 
 class CollusionDetector(BaseDetector):
     """Detects suspicious collusion, instant concession, or secret agreement violating bounds.

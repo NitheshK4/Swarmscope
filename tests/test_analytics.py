@@ -1,31 +1,33 @@
 import os
+
 from sandbox.analytics.batch_runner import BatchRunner
+
 
 def test_batch_runner():
     test_db = "test_batch_runs.duckdb"
     if os.path.exists(test_db):
         os.remove(test_db)
-        
+
     try:
         # Create a small negotiation YAML if not exist in workspace scenarios for testing
         scenario_path = "scenarios/negotiation.yaml"
         assert os.path.exists(scenario_path), "scenarios/negotiation.yaml must exist for testing"
-        
+
         runner = BatchRunner(
             scenario_path=scenario_path,
             backend_name="dummy",
             base_temperature=0.7,
             db_path=test_db
         )
-        
+
         report = runner.run_batch(count=3)
-        
+
         assert report["scenario_name"] == "negotiation"
         assert report["total_runs"] == 3
         assert "failure_rates" in report
         assert "summary" in report
         assert len(report["runs"]) == 3
-        
+
     finally:
         if os.path.exists(test_db):
             os.remove(test_db)
@@ -36,19 +38,19 @@ def test_batch_runner():
                     pass
 
 def test_sentiment_and_report():
-    from sandbox.analytics.sentiment_tracker import SentimentTracker
     from sandbox.analytics.report_generator import ReportGenerator
-    from sandbox.schemas import Message, SimulationRun, SimulationMetadata
-    
+    from sandbox.analytics.sentiment_tracker import SentimentTracker
+    from sandbox.schemas import Message, SimulationMetadata, SimulationRun
+
     tracker = SentimentTracker()
-    
+
     # Verify sentiment scores
     coop_score = tracker.analyze_message_sentiment("I agree with your proposal. Let's make a fair compromise.")
     assert coop_score > 0.0
-    
+
     tense_score = tracker.analyze_message_sentiment("I refuse this offer. It is completely unacceptable and too high.")
     assert tense_score < 0.0
-    
+
     # Mock simulation run for report generation
     metadata = SimulationMetadata(
         simulation_id="test_id",
@@ -69,7 +71,7 @@ def test_sentiment_and_report():
         detector_scores={"loop": 0.1, "deadlock": 0.2},
         detector_explanations={"loop": "No loop", "deadlock": "No deadlock"}
     )
-    
+
     report = ReportGenerator.generate_markdown_report(run)
     assert "Simulation Safety Report" in report
     assert "Alice" in report
@@ -78,13 +80,13 @@ def test_sentiment_and_report():
 
 def test_counterfactual_replay():
     from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
+    from sandbox.schemas import Message, SimulationMetadata, SimulationRun
     from sandbox.storage import get_store
-    from sandbox.schemas import SimulationRun, SimulationMetadata, Message
-    
+
     test_db = "test_replay.duckdb"
     if os.path.exists(test_db):
         os.remove(test_db)
-        
+
     try:
         # Create a mock run representing a loop failure
         store = get_store(test_db)
@@ -111,14 +113,14 @@ def test_counterfactual_replay():
             detector_explanations={"loop": "Looping detected", "deadlock": "None"}
         )
         store.save_run(run)
-        
+
         engine = CounterfactualReplayEngine(db_path=test_db)
         report = engine.analyze_mitigations("failed_run_123")
-        
+
         assert report["original_simulation_id"] == "failed_run_123"
         assert "results" in report
         assert "recommendation" in report
-        
+
     finally:
         if os.path.exists(test_db):
             os.remove(test_db)

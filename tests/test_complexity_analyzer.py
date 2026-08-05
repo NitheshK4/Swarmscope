@@ -1,5 +1,5 @@
-from sandbox.schemas import Message
 from sandbox.analytics.complexity_analyzer import ComplexityAnalyzer
+from sandbox.schemas import Message
 
 
 def test_flesch_kincaid():

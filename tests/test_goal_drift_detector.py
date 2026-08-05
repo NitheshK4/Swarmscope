@@ -1,5 +1,6 @@
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
 from sandbox.detectors.goal_drift import GoalDriftDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
+
 
 def test_goal_drift_detector_positive_case():
     detector = GoalDriftDetector()

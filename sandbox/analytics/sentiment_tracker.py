@@ -1,12 +1,14 @@
 import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from sandbox.schemas import Message
+
 
 class SentimentTracker:
     def __init__(self):
         self.cooperative_words = {
-            "agree", "accept", "deal", "compromise", "pleased", "great", 
-            "fair", "reasonable", "happy to", "settle", "partner", 
+            "agree", "accept", "deal", "compromise", "pleased", "great",
+            "fair", "reasonable", "happy to", "settle", "partner",
             "understand", "flexible", "consensus", "middle ground"
         }
         self.hostile_words = {
@@ -18,14 +20,14 @@ class SentimentTracker:
     def analyze_message_sentiment(self, text: str) -> float:
         """Calculates sentiment polarity from -1.0 (tense/hostile) to +1.0 (cooperative)."""
         words = set(re.findall(r"\b\w+\b", text.lower()))
-        
+
         coop_count = len(words.intersection(self.cooperative_words))
         hostile_count = len(words.intersection(self.hostile_words))
-        
+
         total = coop_count + hostile_count
         if total == 0:
             return 0.0 # Neutral
-            
+
         return (coop_count - hostile_count) / total
 
     def track_conversation_sentiment(self, messages: List[Message]) -> List[Dict[str, Any]]:

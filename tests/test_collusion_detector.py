@@ -1,5 +1,6 @@
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
 from sandbox.detectors.collusion import CollusionDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
+
 
 def test_collusion_detector_positive_case():
     detector = CollusionDetector()

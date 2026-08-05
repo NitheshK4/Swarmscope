@@ -1,7 +1,9 @@
-import duckdb
 import threading
+
+import duckdb
+
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 from sandbox.storage.base import BaseStore
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
 
 _db_lock = threading.Lock()
 
@@ -84,7 +86,7 @@ class DuckDBStore(BaseStore):
                 m = run.metadata
                 d_scores = run.detector_scores
                 d_explanations = run.detector_explanations
-                
+
                 conn.execute("""
                     INSERT OR REPLACE INTO runs (
                         simulation_id, scenario_name, timestamp, total_turns, backend, temperature, status,
@@ -104,9 +106,9 @@ class DuckDBStore(BaseStore):
                     d_explanations.get("jailbreak", ""), d_explanations.get("escalation", ""),
                     d_explanations.get("information_leakage", d_explanations.get("informationleakage", ""))
                 ))
-                
+
                 conn.execute("DELETE FROM messages WHERE simulation_id = ?", (m.simulation_id,))
-                
+
                 for msg in run.messages:
                     conn.execute("""
                         INSERT INTO messages (simulation_id, sender, receiver, content, turn, timestamp)
@@ -124,10 +126,10 @@ class DuckDBStore(BaseStore):
                 row = conn.execute("SELECT * FROM runs WHERE simulation_id = ?", (simulation_id,)).fetchone()
                 if not row:
                     raise ValueError(f"Simulation run '{simulation_id}' not found.")
-                
+
                 col_names = [desc[0] for desc in conn.execute("SELECT * FROM runs LIMIT 0").description]
                 row_dict = dict(zip(col_names, row))
-                
+
                 metadata = SimulationMetadata(
                     simulation_id=row_dict["simulation_id"],
                     scenario_name=row_dict["scenario_name"],
@@ -137,7 +139,7 @@ class DuckDBStore(BaseStore):
                     temperature=row_dict["temperature"],
                     status=row_dict["status"]
                 )
-                
+
                 scores = {
                     "loop": row_dict.get("loop_score", 0.0),
                     "deadlock": row_dict.get("deadlock_score", 0.0),
@@ -147,7 +149,7 @@ class DuckDBStore(BaseStore):
                     "escalation": row_dict.get("escalation_score", 0.0),
                     "information_leakage": row_dict.get("information_leakage_score", 0.0)
                 }
-                
+
                 explanations = {
                     "loop": row_dict.get("loop_explanation", ""),
                     "deadlock": row_dict.get("deadlock_explanation", ""),
@@ -157,19 +159,19 @@ class DuckDBStore(BaseStore):
                     "escalation": row_dict.get("escalation_explanation", ""),
                     "information_leakage": row_dict.get("information_leakage_explanation", "")
                 }
-                
+
                 rows = conn.execute("""
                     SELECT sender, receiver, content, turn, timestamp 
                     FROM messages 
                     WHERE simulation_id = ? 
                     ORDER BY turn ASC
                 """, (simulation_id,)).fetchall()
-                
+
                 messages = [
                     Message(sender=r[0], receiver=r[1], content=r[2], turn=r[3], timestamp=r[4])
                     for r in rows
                 ]
-                
+
                 return SimulationRun(
                     metadata=metadata,
                     messages=messages,
@@ -221,7 +223,7 @@ class DuckDBStore(BaseStore):
                     WHERE simulation_id = ? 
                     ORDER BY turn ASC
                 """, (simulation_id,)).fetchall()
-                
+
                 return [
                     Message(sender=r[0], receiver=r[1], content=r[2], turn=r[3], timestamp=r[4])
                     for r in rows
@@ -236,7 +238,7 @@ class DuckDBStore(BaseStore):
                 row = conn.execute("SELECT simulation_id FROM runs WHERE simulation_id = ?", (simulation_id,)).fetchone()
                 if not row:
                     raise ValueError(f"Simulation run '{simulation_id}' not found.")
-                
+
                 conn.execute("DELETE FROM messages WHERE simulation_id = ?", (simulation_id,))
                 conn.execute("DELETE FROM runs WHERE simulation_id = ?", (simulation_id,))
             finally:

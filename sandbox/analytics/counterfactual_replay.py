@@ -1,9 +1,11 @@
 import copy
-from typing import Dict, Any
-from sandbox.schemas import SimulationRun, ScenarioConfig
+from typing import Any, Dict
+
+from sandbox.schemas import ScenarioConfig, SimulationRun
 from sandbox.simulation import Simulation
 from sandbox.storage import get_store
 from sandbox.utils import load_scenario
+
 
 class CounterfactualReplayEngine:
     def __init__(self, db_path: str = "simulation_runs.duckdb"):
@@ -14,7 +16,7 @@ class CounterfactualReplayEngine:
         """Executes a replay of the scenario with a single counterfactual setting changed."""
         m = original_run.metadata
         scenario_path = f"scenarios/{m.scenario_name}.yaml"
-        
+
         # Load the original scenario
         try:
             scenario = load_scenario(scenario_path)
@@ -35,7 +37,7 @@ class CounterfactualReplayEngine:
         # Apply counterfactual parameters
         temperature = m.temperature
         max_memory = None
-        
+
         if variation == "lower_temperature":
             temperature = 0.15
         elif variation == "strict_memory":
@@ -62,7 +64,7 @@ class CounterfactualReplayEngine:
             temperature=temperature,
             db_path=self.db_path
         )
-        
+
         # Inject max_memory property into simulated agents if strict_memory is active
         if max_memory is not None:
             for agent in sim.agents:
@@ -75,7 +77,7 @@ class CounterfactualReplayEngine:
     def analyze_mitigations(self, run_id: str) -> Dict[str, Any]:
         """Runs all counterfactual variations on a failed run and reports the best mitigation strategy."""
         original_run = self.store.get_run(run_id)
-        
+
         variations = [
             "lower_temperature",
             "strict_memory",
@@ -83,7 +85,7 @@ class CounterfactualReplayEngine:
             "sequence_shuffle",
             "cooperative_traits"
         ]
-        
+
         results = {}
         for var in variations:
             try:
@@ -104,9 +106,9 @@ class CounterfactualReplayEngine:
         # Determine the best mitigation (the variation resulting in the lowest peak safety score)
         best_variation = None
         lowest_score = 1.0
-        
+
         orig_max = max(original_run.detector_scores.values()) if original_run.detector_scores else 0.0
-        
+
         for var, res in results.items():
             if "error" not in res:
                 score = res["max_safety_score"]

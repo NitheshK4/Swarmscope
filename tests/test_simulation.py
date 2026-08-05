@@ -1,7 +1,10 @@
-import pytest
 import os
-from sandbox.schemas import ScenarioConfig, AgentConfig
+
+import pytest
+
+from sandbox.schemas import AgentConfig, ScenarioConfig
 from sandbox.simulation import Simulation
+
 
 @pytest.fixture
 def temp_scenario():
@@ -20,7 +23,7 @@ def test_simulation_run(temp_scenario):
     test_db = "test_simulation_runs.duckdb"
     if os.path.exists(test_db):
         os.remove(test_db)
-        
+
     try:
         sim = Simulation(
             scenario=temp_scenario,
@@ -28,21 +31,21 @@ def test_simulation_run(temp_scenario):
             temperature=0.7,
             db_path=test_db
         )
-        
+
         run = sim.run()
-        
+
         assert run.metadata.scenario_name == "test_negotiation"
         assert run.metadata.backend == "dummy"
         assert len(run.messages) > 0
         assert len(run.detector_scores) == 7 # loop, deadlock, collusion, goal_drift, jailbreak, escalation, information_leakage
-        
+
         # Verify persistence
         from sandbox.storage import get_store
         store = get_store(test_db)
         all_runs = store.get_all_runs()
         assert len(all_runs) == 1
         assert all_runs[0].simulation_id == run.metadata.simulation_id
-        
+
     finally:
         if os.path.exists(test_db):
             os.remove(test_db)

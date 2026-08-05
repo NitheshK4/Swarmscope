@@ -1,5 +1,6 @@
-from sandbox.schemas import ScenarioConfig, AgentConfig
+from sandbox.schemas import AgentConfig, ScenarioConfig
 from sandbox.simulation import Simulation
+
 
 def test_simulation_orchestrator():
     scenario = ScenarioConfig(

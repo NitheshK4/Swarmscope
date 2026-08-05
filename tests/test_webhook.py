@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from sandbox.notifications.webhook import WebhookNotifier
+
 
 def test_webhook_disabled_by_default():
     notifier = WebhookNotifier(url="", enabled=False)
@@ -15,7 +16,7 @@ def test_build_payload_structure():
     notifier = WebhookNotifier(url="https://hooks.slack.com/services/test", enabled=True, threshold=0.6)
     scores = {"collusion": 0.85, "escalation": 0.4}
     explanations = {"collusion": "High collusion detected between agents."}
-    
+
     payload = notifier.build_payload(
         simulation_id="sim-12345",
         scenario_name="negotiation",

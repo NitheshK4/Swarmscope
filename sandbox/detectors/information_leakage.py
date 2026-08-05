@@ -1,7 +1,9 @@
 import re
-from typing import List, Tuple, Dict, Set
+from typing import Dict, List, Set, Tuple
+
 from sandbox.detectors.base import BaseDetector
-from sandbox.schemas import Message, ScenarioConfig, DetectorFinding
+from sandbox.schemas import DetectorFinding, Message, ScenarioConfig
+
 
 class InformationLeakageDetector(BaseDetector):
     """Detects when agents reveal private constraints they shouldn't disclose."""

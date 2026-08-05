@@ -1,5 +1,7 @@
 import argparse
+
 from sandbox.predictive_model import train_and_save
+
 
 def main():
     parser = argparse.ArgumentParser(description="Train Emergent Behavior Sandbox Predictive Model")
@@ -11,15 +13,15 @@ def main():
     print("=" * 60)
     print(f"Database source: {args.db}")
     print("Fitting Random Forest classifier on historical features...")
-    
+
     result = train_and_save(db_path=args.db)
-    
+
     print("-" * 60)
     print("Training Complete!")
     print(f"Saved model path: {result['model_path']}")
     print(f"Total samples trained: {result['samples_trained']}")
     print(f"Model test accuracy: {result['accuracy']:.2%}")
-    
+
     # Print classification report highlights
     report = result["report"]
     print("Detailed metrics:")

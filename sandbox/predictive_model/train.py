@@ -1,11 +1,12 @@
-import duckdb
-import pickle
 import os
+import pickle
 import random
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
+
+import duckdb
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
 
 MODEL_FILE = os.path.join(os.path.dirname(__file__), "failure_predictor.pkl")
 
@@ -26,13 +27,13 @@ def generate_synthetic_data(num_samples: int = 100) -> List[Dict[str, Any]]:
     data = []
     backends = ["dummy", "ollama", "openai", "anthropic"]
     scenarios = ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"]
-    
+
     for _ in range(num_samples):
         temp = random.uniform(0.1, 1.2)
         turns = random.randint(5, 20)
         backend = random.choice(backends)
         scenario = random.choice(scenarios)
-        
+
         # Simple logical rules to assign synthetic labels
         # 1. Higher temp and higher turns lead to loop and goal drift failures
         # 2. Ollama / dummy backend might have higher failure rates in our simulation
@@ -46,9 +47,9 @@ def generate_synthetic_data(num_samples: int = 100) -> List[Dict[str, Any]]:
         if scenario == "debate_consensus" and temp < 0.3:
             # Low temperature debate might deadlock
             failure_prob += 0.2
-            
+
         has_failure = 1 if random.random() < failure_prob else 0
-        
+
         data.append({
             "scenario_name": scenario,
             "backend": backend,
@@ -62,7 +63,7 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
     """Extracts features from the DuckDB store, falling back to synthetic data if empty."""
     features = []
     labels = []
-    
+
     # Try fetching from DB first
     runs_exist = False
     if os.path.exists(db_path):
@@ -79,11 +80,11 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
                            COALESCE(information_leakage_score, 0.0)
                     FROM runs
                 """).fetchall()
-                
+
                 for row in rows:
                     scenario_name, backend, temp, turns, s1, s2, s3, s4, s5, s6, s7 = row
                     has_failure = 1 if max(s1, s2, s3, s4, s5, s6, s7) > 0.5 else 0
-                    
+
                     features.append({
                         "scenario_name": scenario_name,
                         "backend": backend,
@@ -95,7 +96,7 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
             pass
         finally:
             conn.close()
-            
+
     if not runs_exist:
         # Fall back to synthetic data
         synth_data = generate_synthetic_data(120)
@@ -107,14 +108,14 @@ def extract_features_and_labels(db_path: str = "simulation_runs.duckdb") -> Tupl
                 "total_turns": row["total_turns"]
             })
             labels.append(row["has_failure"])
-            
+
     return features, labels
 
 def encode_features(raw_features: List[Dict[str, Any]]) -> Tuple[List[List[float]], Dict[str, Any]]:
     """Manual one-hot encoding of categorical variables to keep model footprint small and lightweight."""
     scenarios = ["negotiation", "resource_allocation", "debate_consensus", "supply_chain", "hiring_panel", "crisis_response"]
     backends = ["dummy", "ollama", "openai", "anthropic"]
-    
+
     encoded = []
     for f in raw_features:
         row = []
@@ -122,17 +123,17 @@ def encode_features(raw_features: List[Dict[str, Any]]) -> Tuple[List[List[float
         row.append(float(f["temperature"]))
         row.append(float(f["total_turns"]))
         row.append(float(get_scenario_agent_count(f["scenario_name"])))
-        
+
         # Scenario one-hot
         for s in scenarios:
             row.append(1.0 if f["scenario_name"] == s else 0.0)
-            
+
         # Backend one-hot
         for b in backends:
             row.append(1.0 if f["backend"] == b else 0.0)
-            
+
         encoded.append(row)
-        
+
     meta = {
         "scenarios": scenarios,
         "backends": backends
@@ -143,18 +144,18 @@ def train_and_save(db_path: str = "simulation_runs.duckdb") -> Dict[str, Any]:
     raw_feats, labels = extract_features_and_labels(db_path)
     X, encoding_meta = encode_features(raw_feats)
     y = labels
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
-    
+
     clf = RandomForestClassifier(n_estimators=30, random_state=42)
     clf.fit(X_train, y_train)
-    
+
     # Evaluate
     y_pred = clf.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    
+
     report = classification_report(y_test, y_pred, output_dict=True)
-    
+
     # Save model artifacts
     model_data = {
         "classifier": clf,
@@ -162,11 +163,11 @@ def train_and_save(db_path: str = "simulation_runs.duckdb") -> Dict[str, Any]:
         "accuracy": accuracy,
         "evaluation_report": report
     }
-    
+
     os.makedirs(os.path.dirname(MODEL_FILE), exist_ok=True)
     with open(MODEL_FILE, "wb") as f:
         pickle.dump(model_data, f)
-        
+
     return {
         "accuracy": accuracy,
         "model_path": MODEL_FILE,

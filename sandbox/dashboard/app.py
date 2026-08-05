@@ -1,19 +1,21 @@
-import streamlit as st
-import pandas as pd
-import networkx as nx
-import matplotlib.pyplot as plt
 import os
+
 import duckdb
-from sandbox.storage import get_store
-from sandbox.utils import load_scenario
-from sandbox.simulation import Simulation
-from sandbox.predictive_model import FailurePredictor, MarkovChainAnalyzer
-from sandbox.analytics.sentiment_tracker import SentimentTracker
-from sandbox.analytics.report_generator import ReportGenerator
+import matplotlib.pyplot as plt
+import networkx as nx
+import pandas as pd
+import streamlit as st
+
+from sandbox.analytics.complexity_analyzer import ComplexityAnalyzer
 from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
 from sandbox.analytics.exporter import ConversationExporter
+from sandbox.analytics.report_generator import ReportGenerator
+from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.analytics.token_tracker import TokenTracker
-from sandbox.analytics.complexity_analyzer import ComplexityAnalyzer
+from sandbox.predictive_model import FailurePredictor, MarkovChainAnalyzer
+from sandbox.simulation import Simulation
+from sandbox.storage import get_store
+from sandbox.utils import load_scenario
 
 # ─── Page Config ────────────────────────────────────────────────────────────────
 st.set_page_config(

@@ -1,7 +1,8 @@
-from typing import Dict, Any
-from sandbox.storage import get_store
+from typing import Any, Dict
+
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.analytics.token_tracker import TokenTracker
+from sandbox.storage import get_store
 
 
 class SimulationComparator:

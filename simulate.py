@@ -1,9 +1,11 @@
 import argparse
-import sys
 import os
-from sandbox.utils import load_scenario
-from sandbox.simulation import Simulation
+import sys
+
 from sandbox.analytics import BatchRunner
+from sandbox.simulation import Simulation
+from sandbox.utils import load_scenario
+
 
 def main():
     parser = argparse.ArgumentParser(description="Emergent Behavior Sandbox CLI")
@@ -12,14 +14,14 @@ def main():
     parser.add_argument("--backend", type=str, default="dummy", help="LLM Backend type (dummy, ollama, openai, anthropic)")
     parser.add_argument("--temp", type=float, default=0.7, help="Simulation response temperature")
     parser.add_argument("--batch", type=int, default=0, help="If > 0, run as a batch Monte Carlo simulation of N runs")
-    
+
     args = parser.parse_args()
-    
+
     scenario_path = f"scenarios/{args.scenario}.yaml"
     if not os.path.exists(scenario_path):
         print(f"Error: Scenario file '{scenario_path}' does not exist.")
         sys.exit(1)
-        
+
     print("=" * 60)
     print("      EMERGENT BEHAVIOR SANDBOX SIMULATION RUNNER")
     print("=" * 60)
@@ -27,7 +29,7 @@ def main():
     print(f"Backend:     {args.backend}")
     print(f"Temperature: {args.temp}")
     print(f"Max Turns:   {args.turns}")
-    
+
     if args.batch > 0:
         print(f"Mode:        Batch Monte Carlo ({args.batch} runs)")
         print("-" * 60)
@@ -56,12 +58,12 @@ def main():
                 temperature=args.temp
             )
             run = sim.run(max_turns=args.turns)
-            
+
             print("Conversation Log:")
             for msg in run.messages:
                 print(f"[{msg.turn}] {msg.sender}: {msg.content}")
                 print("-" * 40)
-            
+
             print("\nDetector Analysis Summary:")
             for det, score in run.detector_scores.items():
                 print(f"  * {det.upper()} score: {score:.2f}")

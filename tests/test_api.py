@@ -1,7 +1,6 @@
-import pytest
 from fastapi.testclient import TestClient
+
 from sandbox.api import app
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
 
 client = TestClient(app)
 

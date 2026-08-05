@@ -1,7 +1,8 @@
 import re
 from typing import List, Tuple
+
 from sandbox.detectors.base import BaseDetector
-from sandbox.schemas import Message, ScenarioConfig, DetectorFinding
+from sandbox.schemas import DetectorFinding, Message, ScenarioConfig
 
 
 class EscalationDetector(BaseDetector):

@@ -1,5 +1,6 @@
-from sandbox.schemas import Message, ScenarioConfig, AgentConfig
 from sandbox.detectors.loop import LoopDetector
+from sandbox.schemas import AgentConfig, Message, ScenarioConfig
+
 
 def test_loop_detector_positive_case():
     detector = LoopDetector(threshold=0.5)

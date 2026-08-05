@@ -1,6 +1,7 @@
 import os
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
+
 from sandbox.analytics.comparator import SimulationComparator
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 from sandbox.storage import get_store
 
 

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
+
 from sandbox.schemas import Message, ScenarioConfig
+
 
 class BaseDetector(ABC):
     @abstractmethod

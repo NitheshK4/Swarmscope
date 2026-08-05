@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class Message(BaseModel):
     sender: str

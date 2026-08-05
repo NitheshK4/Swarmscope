@@ -1,8 +1,9 @@
 import os
-import pytest
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
-from sandbox.storage import get_store
+
 from sandbox.analytics.counterfactual_replay import CounterfactualReplayEngine
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
+from sandbox.storage import get_store
+
 
 def test_counterfactual_replay_analysis_deterministic():
     test_db = "test_counterfactual.duckdb"

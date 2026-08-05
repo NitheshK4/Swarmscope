@@ -1,8 +1,9 @@
+from sandbox.backends.anthropic_backend import AnthropicBackend
 from sandbox.backends.base import BaseLLMBackend
 from sandbox.backends.dummy import DummyBackend
 from sandbox.backends.ollama_backend import OllamaBackend
 from sandbox.backends.openai_backend import OpenAIBackend
-from sandbox.backends.anthropic_backend import AnthropicBackend
+
 
 def get_backend(backend_name: str, config=None) -> BaseLLMBackend:
     if config is None:

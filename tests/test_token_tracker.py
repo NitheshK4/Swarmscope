@@ -1,5 +1,5 @@
-from sandbox.schemas import Message
 from sandbox.analytics.token_tracker import TokenTracker
+from sandbox.schemas import Message
 
 
 def test_token_tracking():

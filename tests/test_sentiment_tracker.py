@@ -1,6 +1,6 @@
-import pytest
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.schemas import Message
+
 
 def test_analyze_message_sentiment_cooperative():
     tracker = SentimentTracker()

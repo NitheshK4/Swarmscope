@@ -1,7 +1,9 @@
+
 import pytest
-import os
+
+from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 from sandbox.storage.duckdb_store import DuckDBStore
-from sandbox.schemas import SimulationRun, SimulationMetadata, Message
+
 
 @pytest.fixture
 def temp_db(tmp_path):

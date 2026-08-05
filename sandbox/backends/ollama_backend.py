@@ -1,5 +1,7 @@
 import requests
+
 from sandbox.backends.base import BaseLLMBackend
+
 
 class OllamaBackend(BaseLLMBackend):
     backend_name = "ollama"
@@ -10,9 +12,9 @@ class OllamaBackend(BaseLLMBackend):
 
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         url = f"{self.base_url}/api/chat"
-        
+
         messages = [{"role": "system", "content": system_prompt}]
-        
+
         # Add history if present
         if history:
             for msg in history:
@@ -20,10 +22,10 @@ class OllamaBackend(BaseLLMBackend):
                     "role": "assistant" if msg.get("sender") == prompt else "user",
                     "content": msg.get("content", "")
                 })
-        
+
         # Add current prompt
         messages.append({"role": "user", "content": prompt})
-        
+
         payload = {
             "model": self.model,
             "messages": messages,
@@ -32,7 +34,7 @@ class OllamaBackend(BaseLLMBackend):
                 "temperature": temperature
             }
         }
-        
+
         try:
             response = requests.post(url, json=payload, timeout=30)
             response.raise_for_status()

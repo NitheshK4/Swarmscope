@@ -1,23 +1,23 @@
-import pytest
-from unittest.mock import patch, MagicMock
 import json
-import io
+from unittest.mock import MagicMock, patch
+
 from sdk.python.swarmscope_client import SwarmScopeClient
+
 
 def test_sdk_check_health():
     client = SwarmScopeClient("http://localhost:8000")
-    
+
     mock_resp = MagicMock()
     mock_resp.read.return_value = json.dumps({"status": "ok"}).encode("utf-8")
     mock_resp.headers.get_content_type.return_value = "application/json"
-    
+
     with patch("urllib.request.urlopen") as mock_urlopen:
         mock_urlopen.return_value.__enter__.return_value = mock_resp
         assert client.check_health() is True
 
 def test_sdk_run_simulation():
     client = SwarmScopeClient("http://localhost:8000")
-    
+
     mock_run_data = {
         "metadata": {"simulation_id": "sdk-sim-1"},
         "messages": [],
@@ -27,7 +27,7 @@ def test_sdk_run_simulation():
     mock_resp = MagicMock()
     mock_resp.read.return_value = json.dumps(mock_run_data).encode("utf-8")
     mock_resp.headers.get_content_type.return_value = "application/json"
-    
+
     with patch("urllib.request.urlopen") as mock_urlopen:
         mock_urlopen.return_value.__enter__.return_value = mock_resp
         res = client.run_simulation("negotiation", turns=2)
