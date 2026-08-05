@@ -57,7 +57,8 @@ class GoalDriftDetector(BaseDetector):
 
             mid = len(scores) // 2
             first_half_avg = sum(scores[:mid]) / mid if mid > 0 else 0.0
-            second_half_avg = sum(scores[mid:]) / (len(scores) - mid)
+            second_half_len = len(scores) - mid
+            second_half_avg = sum(scores[mid:]) / second_half_len if second_half_len > 0 else 0.0
 
             drift_amount = 0.0
             if first_half_avg > second_half_avg:
