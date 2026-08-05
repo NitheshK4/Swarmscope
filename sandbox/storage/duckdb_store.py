@@ -5,7 +5,7 @@ import duckdb
 from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 from sandbox.storage.base import BaseStore
 
-_db_lock = threading.Lock()
+_db_lock = threading.RLock()
 
 class DuckDBStore(BaseStore):
     def __init__(self, db_path: str = "simulation_runs.duckdb"):
