@@ -32,6 +32,16 @@ class RiskAggregator:
         "goal_drift": "Inject goal reminders into agent memory every 3-5 turns to maintain objective alignment.",
     }
 
+    def __init__(
+        self,
+        medium_threshold: float = 0.25,
+        high_threshold: float = 0.50,
+        critical_threshold: float = 0.75,
+    ):
+        self.medium_threshold = medium_threshold
+        self.high_threshold = high_threshold
+        self.critical_threshold = critical_threshold
+
     def aggregate(self, findings: List[DetectorFinding]) -> RiskSummary:
         if not findings:
             return RiskSummary(
@@ -61,11 +71,11 @@ class RiskAggregator:
         # Combine max score and weighted average for overall risk score
         overall_score = round(min(1.0, 0.6 * max_score + 0.4 * weighted_avg), 3)
 
-        if overall_score >= 0.75:
+        if overall_score >= self.critical_threshold:
             severity = "CRITICAL"
-        elif overall_score >= 0.5:
+        elif overall_score >= self.high_threshold:
             severity = "HIGH"
-        elif overall_score >= 0.25:
+        elif overall_score >= self.medium_threshold:
             severity = "MEDIUM"
         else:
             severity = "LOW"
