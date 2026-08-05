@@ -23,10 +23,28 @@ class BaseLLMBackend(ABC):
     backend_name: str = "base"
     model_name: str = "default"
 
+    def __init__(self, max_retries: int = 3, backoff_factor: float = 0.5, timeout: float = 30.0):
+        self.max_retries = max_retries
+        self.backoff_factor = backoff_factor
+        self.timeout = timeout
+
     @abstractmethod
     def generate(self, system_prompt: str, prompt: str, history: Optional[List] = None, temperature: float = 0.7) -> str:
         """Generates a response text from the LLM given system prompt, current prompt, and history."""
         pass
+
+    def with_retry(self, func, *args, **kwargs):
+        """Executes func with exponential backoff on network/transient failures."""
+        import time
+        last_exc = None
+        for attempt in range(self.max_retries):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_exc = e
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.backoff_factor * (2 ** attempt))
+        raise BackendError(self.backend_name, f"Failed after {self.max_retries} attempts: {last_exc}", last_exc)
 
     def generate_response(
         self, system_prompt: str, prompt: str, history: Optional[List] = None, temperature: float = 0.7
@@ -39,3 +57,4 @@ class BaseLLMBackend(ABC):
             model=self.model_name,
             metadata={"temperature": temperature},
         )
+
