@@ -54,7 +54,36 @@ def test_domain_model_instantiation():
         status="COMPLETED",
     )
     msg = Message(sender="Alice", receiver="Bob", content="Hello", turn=1)
-    run = SimulationRun(metadata=meta, messages=[msg], findings=[finding])
+    run = SimulationRun(
+        metadata=meta,
+        messages=[msg],
+        detector_scores={"loop": 0.8, "deadlock": 0.2},
+        findings=[finding],
+    )
     assert len(run.messages) == 1
     assert len(run.findings) == 1
     assert run.findings[0].detector_name == "loop"
+    assert run.get_peak_risk() == 0.8
+    assert run.get_highest_severity() == "HIGH"
+
+
+def test_schema_validation_constraints():
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        SimulationConfig(scenario_name="test", temperature=-0.5)
+
+    with pytest.raises(ValidationError):
+        SimulationConfig(scenario_name="test", temperature=3.0)
+
+    with pytest.raises(ValidationError):
+        SimulationMetadata(
+            simulation_id="sim-inv",
+            scenario_name="test",
+            timestamp="now",
+            total_turns=-1,
+            backend="dummy",
+            temperature=0.7,
+        )
+
