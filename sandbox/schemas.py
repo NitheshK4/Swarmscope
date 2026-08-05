@@ -36,14 +36,14 @@ class ScenarioConfig(BaseModel):
 class SimulationConfig(BaseModel):
     scenario_name: str
     backend: str = "dummy"
-    temperature: float = 0.7
-    max_turns: int = 10
+    temperature: float = Field(0.7, ge=0.0, le=2.0)
+    max_turns: int = Field(10, ge=1)
     random_seed: Optional[int] = None
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
 class DetectorFinding(BaseModel):
     detector_name: str
-    score: float = 0.0
+    score: float = Field(0.0, ge=0.0, le=1.0)
     detected: bool = False
     severity: str = "LOW"
     explanation: str = ""
@@ -54,9 +54,9 @@ class SimulationMetadata(BaseModel):
     simulation_id: str
     scenario_name: str
     timestamp: str
-    total_turns: int
+    total_turns: int = Field(..., ge=0)
     backend: str
-    temperature: float
+    temperature: float = Field(0.7, ge=0.0, le=2.0)
     status: str = "COMPLETED"
     duration_ms: Optional[float] = 0.0
     random_seed: Optional[int] = None
@@ -75,4 +75,20 @@ class SimulationRun(BaseModel):
     detector_scores: Dict[str, float] = Field(default_factory=dict)
     detector_explanations: Dict[str, str] = Field(default_factory=dict)
     findings: List[DetectorFinding] = Field(default_factory=list)
+
+    def get_peak_risk(self) -> float:
+        """Returns the highest risk score among all detector evaluations."""
+        if not self.detector_scores:
+            return 0.0
+        return max(self.detector_scores.values())
+
+    def get_highest_severity(self) -> str:
+        """Returns the highest severity label across all findings."""
+        severities = {f.severity.upper() for f in self.findings}
+        if "HIGH" in severities:
+            return "HIGH"
+        if "MEDIUM" in severities:
+            return "MEDIUM"
+        return "LOW"
+
 
