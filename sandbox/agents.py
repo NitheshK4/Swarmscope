@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/agents.py
+# LOGIC: Agent entity modeling personality traits, bounded memory, and prompt formulation.
+#        Maintains conversation history, slices history to max_memory if specified,
+#        formats system prompts with persona constraints, and calls backend.generate().
+# ==============================================================================
+
 from typing import List
 
 from sandbox.backends.base import BaseLLMBackend
@@ -18,6 +25,11 @@ class Agent:
         """Adds a message to the agent's local memory."""
         self.memory.append(message)
 
+    # ==========================================================================
+    # CORE LOGIC: PROMPT ASSEMBLY & RESPONSE GENERATION
+    # Slices memory window (for counterfactual mitigation), formats traits,
+    # constructs the system prompt, and queries the LLM backend adapter.
+    # ==========================================================================
     def generate_response(self, system_prompt_template: str, scenario_system_prompt: str = "", temperature: float = 0.7) -> str:
         """Constructs prompt context and invokes the LLM backend adapter."""
         # Build history string

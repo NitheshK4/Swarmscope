@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/storage/duckdb_store.py
+# LOGIC: Embedded columnar persistence driver implemented using DuckDB.
+#        Maintains runs and messages tables with automatic schema migration,
+#        thread-safe re-entrant locking (_db_lock), transaction cleanup, and
+#        fast analytical aggregations over multi-turn simulation histories.
+# ==============================================================================
+
 import threading
 
 import duckdb
@@ -5,14 +13,19 @@ import duckdb
 from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 from sandbox.storage.base import BaseStore
 
+# Re-entrant thread lock ensuring safe concurrent database access
 _db_lock = threading.RLock()
 
+# ==============================================================================
+# CORE STORAGE ENGINE: DuckDB Embedded Columnar Store
+# ==============================================================================
 class DuckDBStore(BaseStore):
     def __init__(self, db_path: str = "simulation_runs.duckdb"):
         self.db_path = db_path
         self._init_db()
 
     def _init_db(self):
+        """Initializes tables and executes automated column migrations."""
         with _db_lock:
             conn = duckdb.connect(self.db_path)
             try:

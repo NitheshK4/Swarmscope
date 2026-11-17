@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/analytics/token_tracker.py
+# LOGIC: Token consumption estimator and conversational fairness tracker.
+#        Calculates token consumption proxies (1.3 tokens/word), agent verbosity
+#        trends, and computes the Gini Coefficient to assess conversation airtime
+#        equity (0.0 = perfectly balanced, 1.0 = completely dominated by one agent).
+# ==============================================================================
+
 import re
 from typing import Any, Dict, List
 
@@ -5,16 +13,11 @@ from sandbox.schemas import Message
 
 
 class TokenTracker:
-    """Estimates token usage and tracks verbosity metrics per agent per turn.
+    """Estimates token usage and tracks verbosity metrics per agent per turn."""
 
-    Provides turn-level and agent-level statistics including:
-    - Estimated token count per message (word-count based proxy)
-    - Cumulative token usage per agent
-    - Verbosity trends (are messages getting longer or shorter?)
-    - Gini coefficient of turn distribution (conversation fairness)
-    - Agent airtime dominance metrics
-    """
-
+    # ==========================================================================
+    # CORE LOGIC: Token Consumption Proxy Calculation
+    # ==========================================================================
     @staticmethod
     def estimate_tokens(text: str) -> int:
         """Estimates token count from text using a word-count based heuristic.

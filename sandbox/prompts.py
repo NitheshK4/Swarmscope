@@ -1,3 +1,13 @@
+# ==============================================================================
+# FILE: sandbox/prompts.py
+# LOGIC: Master dialogue prompt templates injected into LLM backend calls.
+#        Structures persona context (agent name, role, private goal, personality
+#        traits) and conversational history so far, enforcing concise 1st-person responses.
+# ==============================================================================
+
+# ==============================================================================
+# CORE PROMPT TEMPLATE: Dynamic Multi-Agent Turn Injector
+# ==============================================================================
 SYSTEM_CONVERSATION_TEMPLATE = """{scenario_system_prompt}
 
 You are acting as: {agent_name}

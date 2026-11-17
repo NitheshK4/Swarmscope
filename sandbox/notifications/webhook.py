@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/notifications/webhook.py
+# LOGIC: Automated webhook alert dispatcher for high-risk simulation failures.
+#        Evaluates peak detector scores against RISK_ALERT_THRESHOLD, formats
+#        rich alert cards (compatible with Slack, Discord, and custom HTTP endpoints),
+#        and executes asynchronous/non-blocking POST requests.
+# ==============================================================================
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -7,23 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookNotifier:
-    """Configurable webhook integration for simulation risk alerts.
-
-    When a simulation exceeds risk thresholds, fires an HTTP POST to a
-    configured URL with the run summary. Supports Slack, Discord, and
-    custom webhook endpoints.
-
-    Configuration via environment variables:
-        WEBHOOK_URL: Target URL for POST requests
-        WEBHOOK_ENABLED: Set to 'true' to enable (default: false)
-        RISK_ALERT_THRESHOLD: Minimum risk score to trigger alert (default: 0.6)
-    """
+    """Configurable webhook integration for simulation risk alerts."""
 
     def __init__(self, url: str = None, enabled: bool = None, threshold: float = None):
         self.url = url or getattr(Config, "WEBHOOK_URL", "")
         self.enabled = enabled if enabled is not None else getattr(Config, "WEBHOOK_ENABLED", False)
         self.threshold = threshold if threshold is not None else getattr(Config, "RISK_ALERT_THRESHOLD", 0.6)
 
+    # ==========================================================================
+    # CORE LOGIC: Alert Evaluation & Webhook Payload Construction
+    # ==========================================================================
     def should_alert(self, detector_scores: Dict[str, float]) -> bool:
         """Checks if any detector score exceeds the alert threshold."""
         if not self.enabled or not self.url:

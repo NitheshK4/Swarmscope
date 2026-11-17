@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/analytics/sentiment_tracker.py
+# LOGIC: Turn-by-turn conversational sentiment and cooperation analyzer.
+#        Tracks tone polarity from -1.0 (tense/hostile) to +1.0 (cooperative)
+#        using pre-compiled regex word boundaries with LRU caching.
+# ==============================================================================
+
 import functools
 import re
 from typing import Any, Dict, List
@@ -20,6 +27,9 @@ class SentimentTracker:
         self._coop_patterns = [re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in self.cooperative_words]
         self._hostile_patterns = [re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in self.hostile_words]
 
+    # ==========================================================================
+    # CORE LOGIC: LRU-Cached Polarity Scoring & Trajectory Tracing
+    # ==========================================================================
     @functools.lru_cache(maxsize=1024)
     def analyze_message_sentiment(self, text: str) -> float:
         """Calculates sentiment polarity from -1.0 (tense/hostile) to +1.0 (cooperative)."""

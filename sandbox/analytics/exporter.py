@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/analytics/exporter.py
+# LOGIC: Multi-format conversation export engine (JSON, CSV, JSONL, YAML, Markdown).
+#        Enriches messages with sentiment labels, redacts sensitive keys/secrets,
+#        escapes multiline CSV fields, and formats reports for compliance archiving.
+# ==============================================================================
+
 import csv
 import io
 import json
@@ -8,11 +15,7 @@ from sandbox.schemas import Message, SimulationRun
 
 
 class ConversationExporter:
-    """Exports simulation runs in multiple formats: JSON, CSV, and JSONL.
-
-    Includes full message logs, detector scores, metadata, and optional
-    sentiment analysis data for each export format.
-    """
+    """Exports simulation runs in multiple formats: JSON, CSV, JSONL, YAML, and Markdown."""
 
     def __init__(self):
         self.sentiment_tracker = SentimentTracker()
@@ -44,6 +47,9 @@ class ConversationExporter:
                 sanitized[k] = v
         return sanitized
 
+    # ==========================================================================
+    # CORE LOGIC: Multi-Format Serialization (JSON, CSV, JSONL, YAML, Markdown)
+    # ==========================================================================
     def to_json(self, run: SimulationRun, include_sentiment: bool = True) -> str:
         """Exports a simulation run as a formatted JSON string."""
         meta = {

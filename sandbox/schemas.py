@@ -1,9 +1,19 @@
+# ==============================================================================
+# FILE: sandbox/schemas.py
+# LOGIC: Pydantic v2 data models defining domain schemas across SwarmScope.
+#        Enforces type safety and range validation for messages, scenario configs,
+#        detector findings, run metadata, and completed simulation records.
+# ==============================================================================
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 
+# ==============================================================================
+# CORE DOMAIN MODELS: Messages, Events, & Agent Definitions
+# ==============================================================================
 class Message(BaseModel):
     sender: str
     receiver: str
@@ -41,6 +51,9 @@ class SimulationConfig(BaseModel):
     random_seed: Optional[int] = None
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
+# ==============================================================================
+# CORE DOMAIN MODELS: Findings, Metadata, & Simulation Runs
+# ==============================================================================
 class DetectorFinding(BaseModel):
     detector_name: str
     score: float = Field(0.0, ge=0.0, le=1.0)

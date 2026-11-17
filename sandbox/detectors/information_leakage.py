@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/detectors/information_leakage.py
+# LOGIC: Detects when agents accidentally or strategically reveal confidential parameters
+#        (such as absolute limits, budgets, minimum reserves) that should remain hidden.
+#        Extracts private constraint numbers from agent goals, scans conversational
+#        turns for disclosure patterns ("my absolute limit is...", "between you and me..."),
+#        and supports automated secret redaction for sanitized export.
+# ==============================================================================
+
 import re
 from typing import Dict, List, Set, Tuple
 
@@ -8,6 +17,9 @@ from sandbox.schemas import DetectorFinding, Message, ScenarioConfig
 class InformationLeakageDetector(BaseDetector):
     """Detects when agents reveal private constraints they shouldn't disclose."""
 
+    # ==========================================================================
+    # CORE LOGIC: Regex Patterns for Secret Constraints & Confidential Disclosures
+    # ==========================================================================
     CONSTRAINT_PATTERNS = [
         r"(?:maximum|max|limit|budget|ceiling|cap|no more than|at most|up to|minimum|min|floor|lowest|at least|no less than|no lower than|under|above|below)\s*(?:is|of|to|at|price|limit|value)?\s*(?:[a-zA-Z]+\s+){0,3}\$?\s*(\d+(?:,\d+)?)\b"
     ]

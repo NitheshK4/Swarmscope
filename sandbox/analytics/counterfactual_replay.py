@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/analytics/counterfactual_replay.py
+# LOGIC: Counterfactual replay engine for debugging and mitigating emergent failures.
+#        Takes a failed simulation run, isolates single parameter modifications
+#        (e.g., lower temperature, strict memory pruning, constraint prompts,
+#        turn sequence shuffling, cooperative traits), replays the scenario,
+#        and calculates risk reduction deltas to recommend optimal production guardrails.
+# ==============================================================================
+
 import copy
 from typing import Any, Dict
 
@@ -12,6 +21,9 @@ class CounterfactualReplayEngine:
         self.db_path = db_path
         self.store = get_store(db_path)
 
+    # ==========================================================================
+    # CORE LOGIC: Parameter Intervention & Re-Simulation Branch
+    # ==========================================================================
     def run_counterfactual_variation(self, original_run: SimulationRun, variation: str) -> SimulationRun:
         """Executes a replay of the scenario with a single counterfactual setting changed."""
         m = original_run.metadata
@@ -29,9 +41,6 @@ class CounterfactualReplayEngine:
                 system_prompt="Play your roles.",
                 max_turns=m.total_turns
             )
-            # Recreate agent configs
-            # We extract them from the messages senders if needed,
-            # but for simplicity we assume the standard scenario yaml exists.
             pass
 
         # Apply counterfactual parameters
@@ -74,6 +83,9 @@ class CounterfactualReplayEngine:
         counterfactual_run = sim.run(max_turns=m.total_turns)
         return counterfactual_run
 
+    # ==========================================================================
+    # CORE LOGIC: Multi-Variation Analysis & Remediation Recommendation
+    # ==========================================================================
     def analyze_mitigations(self, run_id: str) -> Dict[str, Any]:
         """Runs all counterfactual variations on a failed run and reports the best mitigation strategy."""
         original_run = self.store.get_run(run_id)

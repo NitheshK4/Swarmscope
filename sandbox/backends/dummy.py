@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/backends/dummy.py
+# LOGIC: Deterministic rule-based LLM backend simulator for zero-cost testing.
+#        Emulates multi-turn conversations across negotiation, resource allocation,
+#        and technical debates without making external API calls. Takes into account
+#        agent personality traits (assertiveness, cooperativeness) to calculate dynamic
+#        concession step sizes.
+# ==============================================================================
+
 import random
 import re
 from typing import List, Optional
@@ -13,6 +22,10 @@ class DummyBackend(BaseLLMBackend):
         self.seed = seed
         self.rng = random.Random(seed) if seed is not None else None
 
+    # ==========================================================================
+    # CORE LOGIC: DETERMINISTIC CONVERSATION SIMULATION ENGINE
+    # Parses prompt context, history, and prices to generate realistic replies.
+    # ==========================================================================
     def generate(self, system_prompt: str, prompt: str, history: Optional[List] = None, temperature: float = 0.7) -> str:
         """Generates deterministic mock dialogue matching scenarios to allow local testing."""
         history = history or []

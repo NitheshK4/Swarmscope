@@ -1,8 +1,18 @@
+# ==============================================================================
+# FILE: sandbox/analytics/report_generator.py
+# LOGIC: Markdown safety report generator for completed simulation runs.
+#        Formats run metadata, detector vulnerability risk profiles, sentiment
+#        polarity scores, and annotated message transcripts into an executive safety audit.
+# ==============================================================================
+
 from sandbox.analytics.sentiment_tracker import SentimentTracker
 from sandbox.schemas import SimulationRun
 
 
 class ReportGenerator:
+    # ==========================================================================
+    # CORE LOGIC: Markdown Safety Audit Generation
+    # ==========================================================================
     @staticmethod
     def generate_markdown_report(run: SimulationRun) -> str:
         """Generates a comprehensive markdown report for a completed simulation run."""

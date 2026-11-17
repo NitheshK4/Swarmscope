@@ -1,9 +1,20 @@
+# ==============================================================================
+# FILE: sdk/python/swarmscope_client.py
+# LOGIC: Lightweight, dependency-free Python client SDK using standard library urllib.
+#        Provides high-level methods to trigger simulations, run Monte Carlo batches,
+#        query ML risk predictions, register external runs, stream messages,
+#        and fetch findings and safety reports.
+# ==============================================================================
+
 import json
 import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
 
+# ==============================================================================
+# CORE PYTHON CLIENT SDK
+# ==============================================================================
 class SwarmScopeClient:
     """Python Client SDK for interacting with the SwarmScope API server."""
 
@@ -11,6 +22,9 @@ class SwarmScopeClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
+    # --------------------------------------------------------------------------
+    # CORE LOGIC: HTTP Request Dispatcher
+    # --------------------------------------------------------------------------
     def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}{endpoint}"
         headers = {"Content-Type": "application/json"}

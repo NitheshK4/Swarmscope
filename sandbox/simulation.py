@@ -1,3 +1,13 @@
+# ==============================================================================
+# FILE: sandbox/simulation.py
+# LOGIC: Core orchestration engine for SwarmScope simulations.
+#        Initializes agents, coordinates turn-taking in a round-robin loop,
+#        transfers dialogue messages into agent memory histories, evaluates early
+#        exit termination signals, executes all 7 vulnerability detectors against
+#        the recorded conversation, aggregates metadata/findings, dispatches
+#        webhook notifications, and persists the run to DuckDB storage.
+# ==============================================================================
+
 import time
 from typing import List, Optional
 
@@ -32,7 +42,7 @@ class Simulation:
         self.db_path = db_path or Config.DUCKDB_PATH
         self.random_seed = random_seed
 
-        # Load backend and storage
+        # Load backend adapter and persistence layer
         self.backend = get_backend(self.backend_name)
         if hasattr(self.backend, "seed") and self.random_seed is not None:
             self.backend.seed = self.random_seed
@@ -42,7 +52,7 @@ class Simulation:
 
         self.store = get_store(self.db_path)
 
-        # Initialize agents
+        # Initialize participating agents from scenario config
         self.agents: List[Agent] = []
         for agent_cfg in scenario.agents:
             traits_dict = getattr(agent_cfg, "traits", None)
@@ -72,6 +82,12 @@ class Simulation:
         if num_agents == 0:
             raise ValueError("No agents defined in scenario config.")
 
+        # ======================================================================
+        # CORE LOGIC: MULTI-AGENT CONVERSATION TURN LOOP
+        # Rotates active agent, triggers LLM response generation, records
+        # message to global history, broadcasts to counterparties, and checks
+        # for early termination phrases.
+        # ======================================================================
         for turn_idx in range(1, turns + 1):
             turn_start = time.time()
             active_agent_idx = (turn_idx - 1) % num_agents
@@ -80,6 +96,7 @@ class Simulation:
             receivers = [a.name for a in self.agents if a.name != active_agent.name]
             receiver_name = ", ".join(receivers) if receivers else "All"
 
+            # Generate active agent's turn response using backend LLM
             response_content = active_agent.generate_response(
                 system_prompt_template=SYSTEM_CONVERSATION_TEMPLATE,
                 scenario_system_prompt=self.scenario.system_prompt,
@@ -106,9 +123,11 @@ class Simulation:
             )
             events.append(evt)
 
+            # Distribute message to local memory of all agents
             for agent in self.agents:
                 agent.receive_message(msg)
 
+            # Early walk-away / impasse termination check
             lowered_content = response_content.lower()
             if (
                 "walk away" in lowered_content
@@ -118,6 +137,11 @@ class Simulation:
                 status = "terminated"
                 break
 
+        # ======================================================================
+        # CORE LOGIC: VULNERABILITY DETECTOR SCANNING PIPELINE
+        # Runs conversation through all 7 detectors (Loop, Deadlock, Collusion,
+        # Goal Drift, Jailbreak, Escalation, Information Leakage) and compiles findings.
+        # ======================================================================
         detector_scores = {}
         detector_explanations = {}
         findings: List[DetectorFinding] = []
@@ -148,6 +172,9 @@ class Simulation:
 
         total_duration_ms = round((time.time() - start_time) * 1000, 2)
 
+        # ======================================================================
+        # CORE LOGIC: PERSISTENCE, ALERTS, & METADATA AGGREGATION
+        # ======================================================================
         metadata = SimulationMetadata(
             simulation_id=sim_id,
             scenario_name=self.scenario.name,

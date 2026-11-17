@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/api.py
+# LOGIC: FastAPI REST server providing HTTP endpoints for simulation orchestration,
+#        Monte Carlo batch testing, ML risk prediction, external message streaming,
+#        counterfactual replay analysis, historical run inspection, and multi-format exports.
+# ==============================================================================
+
 import os
 from typing import Dict, List, Optional
 
@@ -89,6 +96,9 @@ class PredictionRequest(BaseModel):
 def health():
     return HealthResponse(status="ok", app="Emergent Behavior Sandbox", version="2.0.0")
 
+# ==============================================================================
+# CORE ENDPOINTS: Simulation Execution & Batch Monte Carlo
+# ==============================================================================
 @app.post("/simulate", response_model=SimulationRun)
 def run_simulation(req: SimulationRequest):
     if not req.scenario_name and not req.scenario_payload:
@@ -135,6 +145,9 @@ def run_batch(req: BatchSimulationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==============================================================================
+# CORE ENDPOINT: Instant ML Risk Prediction (Zero LLM cost)
+# ==============================================================================
 @app.post("/predict")
 def predict_risk(req: PredictionRequest):
     try:
@@ -265,6 +278,9 @@ def delete_run(simulation_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==============================================================================
+# CORE ENDPOINT: External Message Streaming & In-Flight Safety Evaluation
+# ==============================================================================
 @app.post("/runs/{simulation_id}/messages")
 def post_external_message(simulation_id: str, req: ExternalMessageRequest):
     store = get_store()
@@ -331,6 +347,9 @@ def post_external_message(simulation_id: str, req: ExternalMessageRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==============================================================================
+# CORE ENDPOINT: Counterfactual Replay & Mitigation Testing
+# ==============================================================================
 @app.post("/runs/{simulation_id}/counterfactual")
 def run_counterfactual(simulation_id: str):
     try:

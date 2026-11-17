@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/analytics/ab_testing.py
+# LOGIC: Statistical A/B testing harness for comparing multi-agent configurations.
+#        Evaluates two configurations (Group A vs Group B) across prompt templates,
+#        temperatures, backends, and traits, computing mean scores, variance, and
+#        permutation-based p-value approximations to measure statistical significance.
+# ==============================================================================
+
 import copy
 import random
 import statistics
@@ -10,24 +18,16 @@ from sandbox.utils import load_scenario
 
 class ABTestRunner:
     """Runs the same scenario with two different configurations and produces
-    statistical comparison reports.
-
-    Supports A/B testing across:
-    - Temperature settings
-    - Backend models
-    - Prompt variations
-    - Agent trait modifications
-    - Turn limits
-
-    Produces mean scores, variance, and a permutation-based p-value approximation
-    to determine if differences are statistically significant.
-    """
+    statistical comparison reports."""
 
     def __init__(self, scenario_path: str, db_path: str = None):
         self.scenario_path = scenario_path
         self.db_path = db_path
         self.original_scenario = load_scenario(scenario_path)
 
+    # ==========================================================================
+    # CORE LOGIC: A/B Test Execution & Statistical Significance Evaluation
+    # ==========================================================================
     def run_ab_test(
         self,
         config_a: Dict[str, Any],

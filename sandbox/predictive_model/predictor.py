@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/predictive_model/predictor.py
+# LOGIC: Zero-cost pre-flight inference engine for failure risk prediction.
+#        Loads the trained Random Forest classifier, encodes input parameters
+#        (scenario, backend, temperature, turns, agents), and computes the
+#        failure probability in <5ms without requiring actual LLM execution.
+# ==============================================================================
+
 import os
 import pickle
 
@@ -17,6 +25,9 @@ class FailurePredictor:
         with open(MODEL_FILE, "rb") as f:
             self.model_data = pickle.load(f)
 
+    # ==========================================================================
+    # CORE LOGIC: Zero-Cost Feature Vector Construction & Probability Inference
+    # ==========================================================================
     def predict_probability(self, scenario_name: str, backend: str, temperature: float, total_turns: int) -> float:
         """Predicts the likelihood of an emergent failure occurring, without running a simulation."""
         if not self.model_data:

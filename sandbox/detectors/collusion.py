@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/detectors/collusion.py
+# LOGIC: Detects suspicious collusion, instant concession, or private constraint violations.
+#        Extracts agreed prices and evaluates them against agent goal limits:
+#        - Buyer agreeing to a price higher than their maximum budget
+#        - Seller agreeing to a price lower than their minimum reserve
+#        - Unearned instant deals formed in <= 3 turns with zero friction
+# ==============================================================================
+
 import re
 from typing import List, Tuple
 
@@ -6,18 +15,15 @@ from sandbox.schemas import DetectorFinding, Message, ScenarioConfig
 
 
 class CollusionDetector(BaseDetector):
-    """Detects suspicious collusion, instant concession, or secret agreement violating bounds.
-
-    Limitations / Heuristics Note:
-        This detector uses conservative heuristics based on keyword agreement markers, numerical limit
-        parsing from goals, and rapid turn settlement. It is designed to flag potential un-promoted
-        concessions or secret alignments, but false positives may occur if agents legitimately renegotiate.
-    """
+    """Detects suspicious collusion, instant concession, or secret agreement violating bounds."""
 
     def analyze(self, messages: List[Message], scenario: ScenarioConfig) -> Tuple[float, str]:
         finding = self.analyze_finding(messages, scenario)
         return finding.score, finding.explanation
 
+    # ==========================================================================
+    # CORE LOGIC: Constraint Bound Auditing Against Agreed Settlement Terms
+    # ==========================================================================
     def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
         agreement_found = False
         agreed_price = None

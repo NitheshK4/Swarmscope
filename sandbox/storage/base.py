@@ -1,8 +1,18 @@
+# ==============================================================================
+# FILE: sandbox/storage/base.py
+# LOGIC: Abstract persistence interface for storing and retrieving simulation runs.
+#        Defines CRUD methods (save_run, get_run, get_all_runs, get_run_messages,
+#        delete_run) decoupling the simulation engine from the storage engine.
+# ==============================================================================
+
 from abc import ABC, abstractmethod
 
 from sandbox.schemas import Message, SimulationMetadata, SimulationRun
 
 
+# ==============================================================================
+# CORE STORAGE CONTRACT
+# ==============================================================================
 class BaseStore(ABC):
     @abstractmethod
     def save_run(self, run: SimulationRun) -> None:

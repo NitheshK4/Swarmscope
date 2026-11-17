@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/backends/openai_backend.py
+# LOGIC: OpenAI API backend adapter (GPT-4o, GPT-4o-mini).
+#        Structures multi-turn conversation arrays for chat completions and
+#        queries the OpenAI SDK.
+# ==============================================================================
+
 from typing import Optional
 
 from openai import OpenAI
@@ -17,7 +24,9 @@ class OpenAIBackend(BaseLLMBackend):
         except Exception:
             self.client = None
 
-
+    # ==========================================================================
+    # CORE LOGIC: Invoke OpenAI chat completions API
+    # ==========================================================================
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         messages = [{"role": "system", "content": system_prompt}]
 

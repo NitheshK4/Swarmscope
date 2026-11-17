@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/detectors/goal_drift.py
+# LOGIC: Detects semantic goal divergence and objective abandonment across conversation history.
+#        Extracts meaningful keywords from each agent's configured goal (filtering stop words),
+#        tracks the ratio of goal keyword overlap in messages over time, and compares the
+#        first-half alignment against the second-half alignment to detect decay.
+# ==============================================================================
+
 import re
 from typing import List, Tuple
 
@@ -10,6 +18,9 @@ class GoalDriftDetector(BaseDetector):
         finding = self.analyze_finding(messages, scenario)
         return finding.score, finding.explanation
 
+    # ==========================================================================
+    # CORE LOGIC: Goal Keyword Alignment & Decay Trajectory Analysis
+    # ==========================================================================
     def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
         if len(messages) < 4:
             return DetectorFinding(

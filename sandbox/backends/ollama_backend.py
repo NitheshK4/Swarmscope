@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/backends/ollama_backend.py
+# LOGIC: Local open-source LLM backend adapter using the Ollama REST API.
+#        Enables zero-cost, private local model execution (e.g., Llama 3, Mistral)
+#        by formatting messages and calling /api/chat.
+# ==============================================================================
+
 import requests
 
 from sandbox.backends.base import BaseLLMBackend
@@ -11,6 +18,9 @@ class OllamaBackend(BaseLLMBackend):
         self.base_url = base_url.rstrip("/")
         self.model = model
 
+    # ==========================================================================
+    # CORE LOGIC: Format conversation payloads and invoke Ollama /api/chat
+    # ==========================================================================
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         url = f"{self.base_url}/api/chat"
 

@@ -1,3 +1,13 @@
+# ==============================================================================
+# FILE: sandbox/analytics/complexity_analyzer.py
+# LOGIC: Linguistic complexity and vocabulary diversity analyzer.
+#        Computes:
+#        1) Flesch-Kincaid Grade Level (readability / linguistic sophistication)
+#        2) Type-Token Ratio (TTR: vocabulary richness = unique words / total words)
+#        3) Complexity degradation detection (early indicator of cognitive collapse/loops)
+#        4) Inter-agent vocabulary overlap (echo-chamber groupthink detection)
+# ==============================================================================
+
 import re
 from typing import Any, Dict, List
 
@@ -5,15 +15,7 @@ from sandbox.schemas import Message
 
 
 class ComplexityAnalyzer:
-    """Computes linguistic complexity metrics for multi-agent conversations.
-
-    Provides:
-    - Flesch-Kincaid Grade Level approximation (reading difficulty)
-    - Type-Token Ratio (vocabulary richness)
-    - Average sentence length per agent
-    - Complexity degradation detection (potential loop/collapse indicator)
-    - Vocabulary overlap between agents (echo chamber detection)
-    """
+    """Computes linguistic complexity metrics for multi-agent conversations."""
 
     @staticmethod
     def _count_syllables(word: str) -> int:
@@ -49,6 +51,9 @@ class ComplexityAnalyzer:
         """Extracts clean word tokens."""
         return re.findall(r"\b[a-zA-Z]+\b", text.lower())
 
+    # ==========================================================================
+    # CORE LOGIC: Flesch-Kincaid Reading Grade & Type-Token Ratio (TTR)
+    # ==========================================================================
     def compute_flesch_kincaid(self, text: str) -> float:
         """Computes Flesch-Kincaid Grade Level for the text.
         Higher values = harder to read. Typical range: 1-18."""

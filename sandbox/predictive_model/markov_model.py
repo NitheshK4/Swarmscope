@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/predictive_model/markov_model.py
+# LOGIC: Discrete-time Markov Chain modeling conversation state transitions.
+#        Discretizes dialogue turns into states: [Neutral, Cooperative, Tense, Terminated].
+#        Fits empirical transition probabilities from historical runs and performs
+#        matrix power iteration (v * P^k) to calculate absorption probability into
+#        premature termination / walkaway states.
+# ==============================================================================
+
 from typing import Dict, List
 
 import numpy as np
@@ -29,6 +38,9 @@ class MarkovChainAnalyzer:
         else:
             return "Neutral"
 
+    # ==========================================================================
+    # CORE LOGIC: Fit Empirical Transition Probability Matrix
+    # ==========================================================================
     def fit_from_runs(self, runs: List[SimulationRun]) -> None:
         """Computes the transition matrix based on actual historical conversation transitions."""
         if len(runs) < 2:
@@ -64,9 +76,11 @@ class MarkovChainAnalyzer:
             if row_sum > 0:
                 self.transition_matrix[i] = counts[i] / row_sum
             else:
-                # Fallback to default row if state was never visited
                 pass
 
+    # ==========================================================================
+    # CORE LOGIC: Power Iteration for Termination Absorption Risk
+    # ==========================================================================
     def predict_absorption_risk(self, recent_messages: List[str], steps: int = 10) -> Dict[str, float]:
         """Calculates the probability of reaching the Terminated/Walkaway state in K steps."""
         tracker = SentimentTracker()

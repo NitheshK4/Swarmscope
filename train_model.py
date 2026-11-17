@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: train_model.py
+# LOGIC: CLI script to train and persist the Machine Learning failure predictor.
+#        Extracts features (scenario, backend, temperature, turns, agent count)
+#        and historical failure labels from DuckDB, trains a Random Forest
+#        classifier, and serializes the model to failure_predictor.pkl for instant
+#        zero-cost pre-flight inference.
+# ==============================================================================
+
 import argparse
 
 from sandbox.predictive_model import train_and_save
@@ -14,6 +23,9 @@ def main():
     print(f"Database source: {args.db}")
     print("Fitting Random Forest classifier on historical features...")
 
+    # ==========================================================================
+    # CORE LOGIC: Invoke Scikit-Learn training pipeline & persist model
+    # ==========================================================================
     result = train_and_save(db_path=args.db)
 
     print("-" * 60)

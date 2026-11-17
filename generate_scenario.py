@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: generate_scenario.py
+# LOGIC: Interactive bootstrapper CLI for creating new scenario YAML definitions.
+#        Collects scenario name, description, global system prompt, turn limits,
+#        and individual agent attributes (name, role, goals, personality traits)
+#        and serializes them into scenarios/<name>.yaml.
+# ==============================================================================
+
 import argparse
 import os
 import sys
@@ -41,6 +49,9 @@ def main():
     except ValueError:
         num_agents = 2
 
+    # ==========================================================================
+    # CORE LOGIC: Agent schema construction & prompt trait assignment
+    # ==========================================================================
     agents = []
     for i in range(num_agents):
         print(f"\n--- Agent {i+1} Details ---")
@@ -76,6 +87,9 @@ def main():
         "max_turns": max_turns
     }
 
+    # ==========================================================================
+    # CORE LOGIC: Save to scenarios/ directory in standard YAML format
+    # ==========================================================================
     os.makedirs("scenarios", exist_ok=True)
     out_file = f"scenarios/{name}.yaml"
 

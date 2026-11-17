@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/detectors/deadlock.py
+# LOGIC: Detects conversational negotiation deadlocks and stubborn impasses.
+#        Extracts proposed numerical values (offers/bids) to detect when proposals
+#        flatline across turns, and monitors refusal vocabulary ("cannot", "limit",
+#        "refuse", "walk away"). Combines proposal stagnation with refusal density.
+# ==============================================================================
+
 import re
 from typing import List, Tuple
 
@@ -10,6 +18,9 @@ class DeadlockDetector(BaseDetector):
         finding = self.analyze_finding(messages, scenario)
         return finding.score, finding.explanation
 
+    # ==========================================================================
+    # CORE LOGIC: Proposal Stagnation & Refusal Keyword Scoring
+    # ==========================================================================
     def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
         if len(messages) < 4:
             return DetectorFinding(
@@ -42,6 +53,7 @@ class DeadlockDetector(BaseDetector):
         stalling_count = 0
         last_proposals = proposals[-4:] if len(proposals) >= 4 else proposals
 
+        # 1. Proposal number stagnation check
         if len(last_proposals) >= 3:
             recent_nums = []
             for sender, turn, vals in last_proposals:
@@ -51,6 +63,7 @@ class DeadlockDetector(BaseDetector):
                 stalling_count = 3
                 evidence.append(f"Proposal price stalled at ${recent_nums[0]:,.0f} across recent turns.")
 
+        # 2. Refusal keyword density check
         refusal_keywords = {"cannot", "limit", "maximum", "minimum", "refuse", "unable", "walk away", "lowest", "highest"}
         refusal_count = 0
         refusal_turns = []

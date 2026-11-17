@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/backends/base.py
+# LOGIC: Abstract base class and normalized response models for LLM adapters.
+#        Standardizes generate() across diverse providers (Dummy, Ollama, OpenAI,
+#        Anthropic) and provides unified exponential backoff retry mechanics.
+# ==============================================================================
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +26,9 @@ class BackendError(Exception):
         self.original_exception = original_exception
         super().__init__(f"[{backend_name}] {message}")
 
+# ==============================================================================
+# CORE BASE CLASS: Adapter Interface with Exponential Backoff
+# ==============================================================================
 class BaseLLMBackend(ABC):
     backend_name: str = "base"
     model_name: str = "default"
@@ -33,6 +43,9 @@ class BaseLLMBackend(ABC):
         """Generates a response text from the LLM given system prompt, current prompt, and history."""
         pass
 
+    # --------------------------------------------------------------------------
+    # CORE LOGIC: Fault-Tolerant Exponential Backoff Retry Strategy
+    # --------------------------------------------------------------------------
     def with_retry(self, func, *args, **kwargs):
         """Executes func with exponential backoff on network/transient failures."""
         import time

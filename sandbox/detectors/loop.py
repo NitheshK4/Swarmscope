@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: sandbox/detectors/loop.py
+# LOGIC: Detects conversational loops, infinite cycles, and repetitive phrasing.
+#        Computes Jaccard word-set similarity across:
+#        1) An individual agent's historical messages (self-similarity)
+#        2) Alternating turns (cycle similarity: Turn i vs Turn i-2)
+#        Flags when agents repeat identical statements or oscillate between rigid positions.
+# ==============================================================================
+
 import re
 from typing import Dict, List, Tuple
 
@@ -13,6 +22,9 @@ class LoopDetector(BaseDetector):
         finding = self.analyze_finding(messages, scenario)
         return finding.score, finding.explanation
 
+    # ==========================================================================
+    # CORE LOGIC: Jaccard Word-Set Similarity & Cyclic Oscillation Analysis
+    # ==========================================================================
     def analyze_finding(self, messages: List[Message], scenario: ScenarioConfig) -> DetectorFinding:
         if len(messages) < 4:
             return DetectorFinding(
@@ -40,6 +52,7 @@ class LoopDetector(BaseDetector):
         repeated_agent = ""
         evidence_phrases = []
 
+        # 1. Check self-similarity (agent repeating themselves)
         for agent, msgs in agent_messages.items():
             if len(msgs) < 2:
                 continue
@@ -54,6 +67,7 @@ class LoopDetector(BaseDetector):
                         if sim >= self.threshold:
                             evidence_phrases.append(f"Turn {msgs[j].turn} and Turn {msgs[i].turn} by {agent}: similarity {sim:.2f}")
 
+        # 2. Check alternating cyclic similarity (dialogue tennis with no new info)
         cycle_similarity = 0.0
         cycle_turn = 0
         for i in range(2, len(messages)):

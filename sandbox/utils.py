@@ -1,3 +1,9 @@
+# ==============================================================================
+# FILE: sandbox/utils.py
+# LOGIC: Utility helpers for scenario loading, YAML parsing, schema validation,
+#        unique run ID generation, and UTC ISO timestamping.
+# ==============================================================================
+
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict
@@ -12,6 +18,10 @@ class ScenarioValidationError(ValueError):
     """Custom exception raised when scenario YAML parsing/validation fails."""
     pass
 
+# ==============================================================================
+# CORE LOGIC: Strict Scenario Validation & Deserialization
+# Enforces required fields, minimum agent count (>= 2), valid roles, and turns.
+# ==============================================================================
 def validate_scenario_dict(data: Dict[str, Any]) -> ScenarioConfig:
     """Validates scenario raw dictionary and raises ScenarioValidationError with actionable errors."""
     if not isinstance(data, dict):
@@ -47,6 +57,9 @@ def validate_scenario_dict(data: Dict[str, Any]) -> ScenarioConfig:
     except ValidationError as e:
         raise ScenarioValidationError(f"Scenario validation failed: {str(e)}") from e
 
+# ==============================================================================
+# Helper functions: file loading, UUID generation, timestamping
+# ==============================================================================
 def load_scenario(file_path: str) -> ScenarioConfig:
     """Loads and validates a YAML scenario config file."""
     try:

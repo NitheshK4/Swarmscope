@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/predictive_model/train.py
+# LOGIC: Machine learning model training pipeline for failure risk prediction.
+#        Extracts features (temperature, turns, agent counts, one-hot encoded backend & scenario)
+#        from historical DuckDB runs (with synthetic bootstrapping if DB is cold),
+#        trains a Scikit-Learn RandomForestClassifier, and saves failure_predictor.pkl.
+# ==============================================================================
+
 import os
 import pickle
 import random
@@ -140,6 +148,9 @@ def encode_features(raw_features: List[Dict[str, Any]]) -> Tuple[List[List[float
     }
     return encoded, meta
 
+# ==============================================================================
+# CORE LOGIC: Scikit-Learn Model Fitting & Artifact Persistence
+# ==============================================================================
 def train_and_save(db_path: str = "simulation_runs.duckdb") -> Dict[str, Any]:
     raw_feats, labels = extract_features_and_labels(db_path)
     X, encoding_meta = encode_features(raw_feats)

@@ -1,3 +1,13 @@
+# ==============================================================================
+# FILE: sandbox/dashboard/app.py
+# LOGIC: Interactive Streamlit analytics frontend for SwarmScope.
+#        Provides 4 core navigation panels:
+#        1) Dashboard Overview: System health, aggregate failure metrics, and risk heatmaps.
+#        2) Run Explorer: Historical conversation inspection, message transcripts, and findings.
+#        3) Safety Debugger: NetworkX communication topology, sentiment timelines, complexity, and counterfactual replay.
+#        4) Risk Predictor: Real-time ML failure forecasting and Markov Chain transition matrix visualization.
+# ==============================================================================
+
 import os
 
 import duckdb

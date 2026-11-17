@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/backends/anthropic_backend.py
+# LOGIC: Anthropic API backend adapter (Claude 3.5 Sonnet).
+#        Sanitizes message arrays to conform to Anthropic's strict alternating
+#        user-assistant format, separates top-level system prompt, and calls messages.create().
+# ==============================================================================
+
 from typing import Optional
 
 import anthropic
@@ -17,7 +24,9 @@ class AnthropicBackend(BaseLLMBackend):
         except Exception:
             self.client = None
 
-
+    # ==========================================================================
+    # CORE LOGIC: Role sanitization & Anthropic Messages API dispatch
+    # ==========================================================================
     def generate(self, system_prompt: str, prompt: str, history: list = None, temperature: float = 0.7) -> str:
         # Anthropic takes system prompt as a top-level parameter, not inside the messages array
         messages = []
@@ -32,9 +41,7 @@ class AnthropicBackend(BaseLLMBackend):
         messages.append({"role": "user", "content": prompt})
 
         try:
-            # Anthropic needs strict user-assistant alternating turns, but simple format is fine here.
-            # If there's consecutive same role messages, let's merge or simplify.
-            # For robustness, we will just alternate.
+            # Anthropic needs strict user-assistant alternating turns.
             sanitized_messages = []
             last_role = None
             for m in messages:

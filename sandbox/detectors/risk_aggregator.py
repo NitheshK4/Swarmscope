@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/detectors/risk_aggregator.py
+# LOGIC: Aggregates individual detector findings into a holistic risk assessment.
+#        Computes a composite overall score combining peak detector risk (60%)
+#        and weighted average risk (40%), assigns severity levels (LOW, MEDIUM,
+#        HIGH, CRITICAL), and maps identified failure modes to actionable remediation steps.
+# ==============================================================================
+
 from typing import Dict, List
 
 from pydantic import BaseModel
@@ -16,6 +24,7 @@ class RiskSummary(BaseModel):
 class RiskAggregator:
     """Aggregates multiple detector findings into an overall risk assessment with recommendations."""
 
+    # Detector risk weights in overall calculation
     DETECTOR_WEIGHTS = {
         "loop": 0.20,
         "deadlock": 0.20,
@@ -42,6 +51,9 @@ class RiskAggregator:
         self.high_threshold = high_threshold
         self.critical_threshold = critical_threshold
 
+    # ==========================================================================
+    # CORE LOGIC: Weighted Composite Risk Calculation & Severity Categorization
+    # ==========================================================================
     def aggregate(self, findings: List[DetectorFinding]) -> RiskSummary:
         if not findings:
             return RiskSummary(

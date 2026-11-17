@@ -1,3 +1,12 @@
+# ==============================================================================
+# FILE: simulate.py
+# LOGIC: Command-Line Interface (CLI) runner and CI/CD quality gate for SwarmScope.
+#        Parses user configuration (scenario, turns, backend, temperature),
+#        dispatches either a single conversation run or a multi-run Monte Carlo batch,
+#        formats results (text, JSON, Markdown), and evaluates safety thresholds
+#        (--fail-on-risk) to fail automated builds if risks exceed acceptable limits.
+# ==============================================================================
+
 import argparse
 import os
 import sys
@@ -8,6 +17,9 @@ from sandbox.utils import load_scenario
 
 
 def main():
+    # --------------------------------------------------------------------------
+    # CLI Argument Parsing & Configuration Setup
+    # --------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description="Emergent Behavior Sandbox CLI")
     parser.add_argument("--scenario", type=str, default="negotiation", help="Scenario name")
     parser.add_argument("--turns", type=int, default=10, help="Maximum conversation turns")
@@ -35,7 +47,11 @@ def main():
         print(f"Temperature: {args.temp}")
         print(f"Max Turns:   {args.turns}")
 
+    # ==========================================================================
+    # CORE LOGIC: EXECUTION BRANCH (Batch Monte Carlo vs. Single Run)
+    # ==========================================================================
     if args.batch > 0:
+        # --- PATH A: Monte Carlo Batch Execution ---
         if not args.quiet and args.format == "text":
             print(f"Mode:        Batch Monte Carlo ({args.batch} runs)")
             print("-" * 60)
@@ -59,6 +75,7 @@ def main():
                 print(f"  - {k.capitalize()}: {v:.0%}")
             print("=" * 60)
     else:
+        # --- PATH B: Single Conversation Simulation Run ---
         if not args.quiet and args.format == "text":
             print("Mode:        Single Conversation Run")
             print("-" * 60)
@@ -69,8 +86,10 @@ def main():
                 backend_name=args.backend,
                 temperature=args.temp
             )
+            # CORE CALL: Execute multi-agent simulation loop and detector scanning
             run = sim.run(max_turns=args.turns)
 
+            # Output Formatting
             if args.format == "json":
                 from sandbox.analytics.exporter import ConversationExporter
                 print(ConversationExporter().to_json(run))
@@ -92,6 +111,9 @@ def main():
                     print(f"Simulation logged with ID: {run.metadata.simulation_id}")
                     print("=" * 60)
 
+            # ------------------------------------------------------------------
+            # CI/CD Quality Gate: Automated failure on risk threshold
+            # ------------------------------------------------------------------
             if args.fail_on_risk is not None:
                 peak_risk = run.get_peak_risk()
                 if peak_risk >= args.fail_on_risk:

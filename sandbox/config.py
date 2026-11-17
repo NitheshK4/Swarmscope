@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/config.py
+# LOGIC: Centralized configuration manager for SwarmScope.
+#        Loads environment variables from .env, defines defaults for LLM backends,
+#        API keys, models, DuckDB paths, and webhook thresholds, and provides
+#        type-safe getters and validation helpers.
+# ==============================================================================
+
 import os
 
 from dotenv import load_dotenv
@@ -5,6 +13,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env if present
 load_dotenv()
 
+# ==============================================================================
+# CORE CONFIGURATION SPECIFICATION
+# ==============================================================================
 class Config:
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "dummy").lower()
 
@@ -51,6 +62,9 @@ class Config:
     def risk_alert_threshold(cls) -> float:
         return cls.get_float("RISK_ALERT_THRESHOLD", 0.6)
 
+    # ==========================================================================
+    # CORE LOGIC: API Key / Backend validation check
+    # ==========================================================================
     @classmethod
     def validate_keys(cls):
         """Validates that key APIs are available depending on selected backend."""

@@ -1,3 +1,10 @@
+# ==============================================================================
+# FILE: sandbox/analytics/comparator.py
+# LOGIC: Side-by-side comparison engine for evaluating two simulation runs.
+#        Computes differentials across metadata, detector vulnerability scores,
+#        turn efficiency, token usage, and sentiment trajectory to determine the superior run.
+# ==============================================================================
+
 from typing import Any, Dict
 
 from sandbox.analytics.sentiment_tracker import SentimentTracker
@@ -6,28 +13,18 @@ from sandbox.storage import get_store
 
 
 class SimulationComparator:
-    """Compares two simulation runs side-by-side.
-
-    Produces a comprehensive diff of detector scores, sentiment trajectories,
-    turn counts, token usage, and outcomes to identify which configuration
-    performed better and why.
-    """
+    """Compares two simulation runs side-by-side."""
 
     def __init__(self, db_path: str = "simulation_runs.duckdb"):
         self.store = get_store(db_path)
         self.sentiment_tracker = SentimentTracker()
         self.token_tracker = TokenTracker()
 
+    # ==========================================================================
+    # CORE LOGIC: Side-by-Side Run Differential & Outcome Winner Assessment
+    # ==========================================================================
     def compare(self, run_id_a: str, run_id_b: str) -> Dict[str, Any]:
-        """Produces a side-by-side comparison of two simulation runs.
-
-        Args:
-            run_id_a: First simulation run ID.
-            run_id_b: Second simulation run ID.
-
-        Returns:
-            Dictionary with comparison results, deltas, and winner determination.
-        """
+        """Produces a side-by-side comparison of two simulation runs."""
         run_a = self.store.get_run(run_id_a)
         run_b = self.store.get_run(run_id_b)
 

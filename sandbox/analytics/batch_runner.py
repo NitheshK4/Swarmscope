@@ -1,3 +1,11 @@
+# ==============================================================================
+# FILE: sandbox/analytics/batch_runner.py
+# LOGIC: Monte Carlo batch runner for stress-testing agent configurations.
+#        Executes N parallel simulations with bounded concurrency (ThreadPoolExecutor),
+#        fuzzes runs with temperature jitter (+-0.15), agent sequence shuffling,
+#        and prompt phrasing perturbations, calculating statistical failure rates.
+# ==============================================================================
+
 import copy
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,6 +25,9 @@ class BatchRunner:
         self.max_concurrency = max_concurrency
         self.original_scenario = load_scenario(scenario_path)
 
+    # ==========================================================================
+    # CORE LOGIC: Parameter Jitter & Perturbation Engine
+    # ==========================================================================
     def _execute_single_run(self, index: int) -> Optional[SimulationRun]:
         """Executes a single simulation run with failure isolation."""
         try:
@@ -44,6 +55,9 @@ class BatchRunner:
             # Failure isolated — log error and return None
             return None
 
+    # ==========================================================================
+    # CORE LOGIC: Concurrent ThreadPool Execution & Aggregate Failure Rates
+    # ==========================================================================
     def run_batch(self, count: int = 5) -> Dict[str, Any]:
         """Runs the simulation N times with variations, bounded concurrency, and error isolation."""
         successful_runs: List[SimulationRun] = []
